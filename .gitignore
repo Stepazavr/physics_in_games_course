@@ -1,0 +1,13 @@
+# VS Code workspace settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# VS Code workspace files
+*.code-workspace
+
+# Python cache
+__pycache__/
+*.py[cod]
