@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Physics in Games Course - Homeworks</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f6fb;
+      --surface: #ffffff;
+      --text: #14213d;
+      --muted: #4b587c;
+      --accent: #0077b6;
+      --accent-hover: #005f8f;
+      --border: #d6e0f5;
+      --shadow: 0 14px 32px rgba(20, 33, 61, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(145deg, #eef3ff 0%, #f7fbff 40%, #f1f5ff 100%);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.9rem;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    a {
+      display: block;
+      text-decoration: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--accent);
+      background: #f8fbff;
+      font-weight: 600;
+      transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    a:hover {
+      color: #ffffff;
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .back {
+      margin-top: 18px;
+      font-weight: 500;
+      display: inline-block;
+      color: var(--muted);
+    }
+
+    .back:hover {
+      color: var(--text);
+      background: transparent;
+      transform: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>Домашние работы</h1>
+      <p>Выберите раздел для перехода к задачам.</p>
+
+      <ul>
+        <li><a href="./homework_1/">Homework 1</a></li>
+      </ul>
+
+      <a class="back" href="../">Назад к начальной странице</a>
+    </section>
+  </main>
+</body>
+</html>

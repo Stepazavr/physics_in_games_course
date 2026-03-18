@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Homework 1 - Tasks</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fd;
+      --surface: #ffffff;
+      --text: #14213d;
+      --muted: #576284;
+      --accent: #0a9396;
+      --accent-hover: #087f81;
+      --border: #dce4f5;
+      --shadow: 0 12px 28px rgba(20, 33, 61, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: radial-gradient(circle at top right, #edf7f8 0%, #f5f8ff 45%, #eff3ff 100%);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.8rem;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    a {
+      display: block;
+      text-decoration: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--accent);
+      background: #f7feff;
+      font-weight: 600;
+      transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    a:hover {
+      color: #ffffff;
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .back {
+      margin-top: 18px;
+      font-weight: 500;
+      display: inline-block;
+      color: var(--muted);
+    }
+
+    .back:hover {
+      color: var(--text);
+      background: transparent;
+      transform: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>Homework 1</h1>
+      <p>Выберите задачу для запуска симуляции.</p>
+
+      <ul>
+        <li><a href="./task_1/">Task 1</a></li>
+        <li><a href="./task_2/">Task 2</a></li>
+      </ul>
+
+      <a class="back" href="../">Назад к списку домашних работ</a>
+    </section>
+  </main>
+</body>
+</html>
