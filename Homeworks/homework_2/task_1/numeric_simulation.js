@@ -13,7 +13,6 @@ const settings = {
   constraintStiffness: 1.0, // Жесткость ограничений (0 = нет, 1 = полная)
   flexibility: 1.0, // Упругость при столкновениях (0 = нет, 1 = полная)
   frictionCoefficient: 0.5, // Коэффициент трения (0 = нет, 1 = максимум)
-  dampingFactor: 1.0, // Дэмпинг скорости (0-1, где 1 = нет дэмпинга)
   
   // Circle
   circleCenter: { x: 0, y: 0 },
@@ -137,10 +136,7 @@ function integrateVelocityAndPosition(dt) {
     // 1. v_{k+1} = v_k + a_k * dt
     point.velocity.add(p5.Vector.mult(point.acceleration, dt));
     
-    // 2. Применяем дэмпинг к обычной скорости
-    point.velocity.mult(settings.dampingFactor);
-    
-    // 3. x_{predicted} = x_k + v * dt
+    // 2. x_{predicted} = x_k + v * dt
     point.positionPredicted.set(point.position);
     point.positionPredicted.add(p5.Vector.mult(point.velocity, dt));
   }
@@ -638,16 +634,6 @@ window.addEventListener('load', () => {
       const value = parseFloat(e.target.value);
       settings.frictionCoefficient = value;
       frictionValue.textContent = value.toFixed(2);
-    });
-  }
-  
-  const dampingInput = document.getElementById('dampingInput');
-  const dampingValue = document.getElementById('dampingValue');
-  if (dampingInput) {
-    dampingInput.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      settings.dampingFactor = value;
-      dampingValue.textContent = value.toFixed(2);
     });
   }
   
