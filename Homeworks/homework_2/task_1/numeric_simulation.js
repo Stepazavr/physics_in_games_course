@@ -166,7 +166,7 @@ function constrainPointToWalls(point) {
   }
 }
 
-function applyCollisionVelocityResponse(point) {
+function updateVelocity(point) {
   // Применяем упругость и трение при коллизии со стеной
   const e = settings.flexibility;
   const mu = settings.frictionCoefficient;
@@ -194,7 +194,7 @@ function updateCollisions() {
 function updateVelocities() {
   // Применяем эффекты коллизии к скоростям всех точек
   for (const point of points) {
-    applyCollisionVelocityResponse(point);
+    updateVelocity(point);
   }
 }
 
