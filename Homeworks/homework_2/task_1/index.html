@@ -20,9 +20,51 @@
       box-sizing: border-box;
     }
 
+    .controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #0077b6;
+      color: white;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #005f8f;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.reset {
+      background-color: #d62828;
+    }
+
+    button.reset:hover {
+      background-color: #a61f1f;
+    }
+
   </style>
 </head>
 <body>
+  <div class="controls">
+    <button id="gravityBtn">Гравитация: ВКЛ</button>
+    <button id="resetBtn" class="reset">Сброс</button>
+  </div>
+
   <main>
   </main>
 
