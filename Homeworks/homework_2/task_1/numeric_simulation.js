@@ -10,9 +10,10 @@ const settings = {
   gravity: { x: 0, y: 980 },
   timeStep: 0.01,
   solverIterations: 3,
-  restitution: 1.0,
+  constraintStiffness: 1.0, // Жесткость ограничений (0 = нет, 1 = полная)
+  flexibility: 1.0, // Упругость при столкновениях (0 = нет, 1 = полная)
   frictionCoefficient: 0.5, // Коэффициент трения (0 = нет, 1 = максимум)
-  dampingFactor: 0.99, // Дэмпинг скорости (0-1, где 1 = нет дэмпинга)
+  dampingFactor: 1.0, // Дэмпинг скорости (0-1, где 1 = нет дэмпинга)
   
   // Circle
   circleCenter: { x: 0, y: 0 },
@@ -166,8 +167,8 @@ function constrainPointToWalls(point) {
 }
 
 function applyCollisionVelocityResponse(point) {
-  // Применяем реституцию и трение при коллизии со стеной
-  const e = settings.restitution;
+  // Применяем упругость и трение при коллизии со стеной
+  const e = settings.flexibility;
   const mu = settings.frictionCoefficient;
   
   // Столкновение с левой/правой стеной
@@ -227,12 +228,12 @@ function solveConstraints_Hitman(iterations) {
       const diff = (deltaLength - restLength) / (deltaLength * (invMass1 + invMass2));
       
       if (p1.isFixed === false) {
-        const correction = p5.Vector.mult(delta, invMass1 * diff);
+        const correction = p5.Vector.mult(delta, invMass1 * diff * settings.constraintStiffness);
         p1.positionPredicted.add(correction);
       }
       
       if (p2.isFixed === false) {
-        const correction = p5.Vector.mult(delta, invMass2 * diff);
+        const correction = p5.Vector.mult(delta, invMass2 * diff * settings.constraintStiffness);
         p2.positionPredicted.sub(correction);
       }
     }
@@ -266,12 +267,12 @@ function solveConstraints_PBD(iterations) {
       const s = C / denom;
       
       if (p1.isFixed === false) {
-        const correction = p5.Vector.mult(gradP1, -s * w1);
+        const correction = p5.Vector.mult(gradP1, -s * w1 * settings.constraintStiffness);
         p1.positionPredicted.add(correction);
       }
       
       if (p2.isFixed === false) {
-        const correction = p5.Vector.mult(gradP2, -s * w2);
+        const correction = p5.Vector.mult(gradP2, -s * w2 * settings.constraintStiffness);
         p2.positionPredicted.add(correction);
       }
     }
@@ -467,6 +468,57 @@ window.addEventListener('load', () => {
   if (solverSelect) {
     solverSelect.addEventListener('change', (e) => {
       changeSolverMethod(e.target.value);
+    });
+  }
+  
+  // Параметры симуляции
+  const iterationsInput = document.getElementById('iterationsInput');
+  const iterationsValue = document.getElementById('iterationsValue');
+  if (iterationsInput) {
+    iterationsInput.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      settings.solverIterations = value;
+      iterationsValue.textContent = value;
+    });
+  }
+  
+  const stiffnessInput = document.getElementById('stiffnessInput');
+  const stiffnessValue = document.getElementById('stiffnessValue');
+  if (stiffnessInput) {
+    stiffnessInput.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      settings.constraintStiffness = value;
+      stiffnessValue.textContent = value.toFixed(2);
+    });
+  }
+  
+  const frictionInput = document.getElementById('frictionInput');
+  const frictionValue = document.getElementById('frictionValue');
+  if (frictionInput) {
+    frictionInput.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      settings.frictionCoefficient = value;
+      frictionValue.textContent = value.toFixed(2);
+    });
+  }
+  
+  const dampingInput = document.getElementById('dampingInput');
+  const dampingValue = document.getElementById('dampingValue');
+  if (dampingInput) {
+    dampingInput.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      settings.dampingFactor = value;
+      dampingValue.textContent = value.toFixed(2);
+    });
+  }
+  
+  const flexibilityInput = document.getElementById('flexibilityInput');
+  const flexibilityValue = document.getElementById('flexibilityValue');
+  if (flexibilityInput) {
+    flexibilityInput.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      settings.flexibility = value;
+      flexibilityValue.textContent = value.toFixed(2);
     });
   }
 });
