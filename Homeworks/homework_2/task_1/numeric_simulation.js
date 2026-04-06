@@ -38,6 +38,9 @@ const settings = {
   // Walls rendering
   wallStrokeColor: { r: 100, g: 100, b: 100 },
   wallStrokeWeight: 3,
+  
+  // Solver method
+  solverMethod: 'hitman', // 'hitman', 'pbd'
 }
 
 // =================================
@@ -51,6 +54,7 @@ let draggedPoint = null;
 
 // Simulation state
 let gravityEnabled = true;
+let currentSolverMethod = 'hitman';
 
 // =================================
 // Setup
@@ -84,7 +88,14 @@ function simulate() {
   applyGravity();
   handlePointDrag();
   updatePoints(settings.timeStep);
-  solveConstraints(settings.solverIterations);
+  
+  // Use selected solver method
+  if (currentSolverMethod === 'hitman') {
+    solveConstraints_Hitman(settings.solverIterations);
+  } else if (currentSolverMethod === 'pbd') {
+    solveConstraints_PBD(settings.solverIterations);
+  }
+  
   handleCollisions();
 }
 
@@ -120,7 +131,8 @@ function updatePoints(dt) {
   }
 }
 
-function solveConstraints(iterations) {
+function solveConstraints_Hitman(iterations) {
+  // Итеративный метод Gauss-Seidel (исходный алгоритм Hitman)
   for (let i = 0; i < iterations; i++) {
     for (const constraint of constraints) {
       const { p1, p2, distance: restLength } = constraint;
@@ -148,6 +160,56 @@ function solveConstraints(iterations) {
       if (p2.isFixed === false) {
         const correction = p5.Vector.mult(delta, invMass2 * diff);
         p2.position.sub(correction);
+      }
+    }
+  }
+}
+
+function solveConstraints_PBD(iterations) {
+  // Классический метод Position Based Dynamics по формутам:
+  // Δp_i = -s * w_i * ∇p_i(C)
+  // s = C / Σ(w_k * (∇p_k(C))^2)
+  
+  for (let i = 0; i < iterations; i++) {
+    for (const constraint of constraints) {
+      const { p1, p2, distance: restLength } = constraint;
+      
+      // Вектор между точками
+      const delta = p5.Vector.sub(p2.position, p1.position);
+      const deltaLength = approximateDistance(delta);
+      
+      if (deltaLength < 1e-6) continue;
+      
+      // Constraint function: C = ||p2 - p1|| - restLength
+      const C = deltaLength - restLength;
+      
+      // Gradient: ∇p1(C) = (p1 - p2) / ||p2 - p1||
+      //           ∇p2(C) = (p2 - p1) / ||p2 - p1||
+      const gradP1 = p5.Vector.mult(delta, -1 / deltaLength);
+      const gradP2 = p5.Vector.mult(delta, 1 / deltaLength);
+      
+      // Inverse masses
+      const w1 = p1.isFixed ? 0 : 1 / p1.mass;
+      const w2 = p2.isFixed ? 0 : 1 / p2.mass;
+      
+      // Denominator: Σ(w_k * (∇p_k(C))^2)
+      // Для двух точек: (∇p1(C))^2 = 1, (∇p2(C))^2 = 1
+      const denom = w1 * 1 + w2 * 1;
+      
+      if (denom < 1e-6) continue;
+      
+      // Масштабный множитель: s = C / denom
+      const s = C / denom;
+      
+      // Коррекция позиций: Δp_i = -s * w_i * ∇p_i(C)
+      if (p1.isFixed === false) {
+        const correction = p5.Vector.mult(gradP1, -s * w1);
+        p1.position.add(correction);
+      }
+      
+      if (p2.isFixed === false) {
+        const correction = p5.Vector.mult(gradP2, -s * w2);
+        p2.position.add(correction);
       }
     }
   }
@@ -322,6 +384,14 @@ function mouseReleased() {
 // UI Controls
 // =================================
 
+function changeSolverMethod(method) {
+  currentSolverMethod = method;
+  const select = document.getElementById('solverSelect');
+  if (select) {
+    select.value = method;
+  }
+}
+
 function toggleGravity() {
   gravityEnabled = !gravityEnabled;
   
@@ -349,6 +419,12 @@ function resetSimulation() {
 window.addEventListener('load', () => {
   document.getElementById('gravityBtn').addEventListener('click', toggleGravity);
   document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+  const solverSelect = document.getElementById('solverSelect');
+  if (solverSelect) {
+    solverSelect.addEventListener('change', (e) => {
+      changeSolverMethod(e.target.value);
+    });
+  }
 });
 
 

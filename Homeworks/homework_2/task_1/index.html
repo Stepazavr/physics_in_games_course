@@ -57,11 +57,36 @@
       background-color: #a61f1f;
     }
 
+    select {
+      padding: 10px 15px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #0077b6;
+      color: white;
+      transition: background-color 0.2s ease;
+    }
+
+    select:hover {
+      background-color: #005f8f;
+    }
+
+    select option {
+      background-color: white;
+      color: black;
+    }
+
   </style>
 </head>
 <body>
   <div class="controls">
     <button id="gravityBtn">Гравитация: ВКЛ</button>
+    <select id="solverSelect">
+      <option value="hitman">Метод: Hitman</option>
+      <option value="pbd">Метод: PBD</option>
+    </select>
     <button id="resetBtn" class="reset">Сброс</button>
   </div>
 
