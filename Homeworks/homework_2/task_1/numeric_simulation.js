@@ -32,6 +32,9 @@ const settings = {
   // Constraints
   constraintErrorThreshold: 1e-1,
   useApproximateRoot: true,
+  
+  // Mouse interaction
+  dragRadius: 15,
 }
 
 // =================================
@@ -39,6 +42,9 @@ const settings = {
 // =================================
 let points = [];
 let constraints = [];
+
+// Mouse and interaction
+let draggedPoint = null;
 
 // Simulation state
 let gravityEnabled = true;
@@ -73,7 +79,7 @@ function draw() {
 // =================================
 function simulate() {
   applyGravity();
-  // Drag handling is now in mouseDragged()
+  handlePointDrag();
   updatePoints(settings.timeStep);
   solveConstraints(settings.solverIterations);
   handleCollisions();
@@ -222,9 +228,57 @@ function drawCircle() {
 
   // Draw points
   noStroke();
-  fill(settings.pointColor.r, settings.pointColor.g, settings.pointColor.b);
   for (const point of points) {
+    if (point === draggedPoint) {
+      fill(255, 200, 0); // Yellow for dragged point
+    } else {
+      fill(settings.pointColor.r, settings.pointColor.g, settings.pointColor.b);
+    }
     circle(point.position.x, point.position.y, settings.pointRadius * 2);
+  }
+}
+
+// =================================
+// Mouse and Interaction
+// =================================
+
+function mousePressed() {
+  // Ищем ближайшую точку к позиции мышки
+  let closestDistSq = Infinity;
+  let closestPoint = null;
+
+  for (const point of points) {
+    const dx = point.position.x - mouseX;
+    const dy = point.position.y - mouseY;
+    const distSq = dx * dx + dy * dy;
+
+    if (distSq < closestDistSq) {
+      closestDistSq = distSq;
+      closestPoint = point;
+    }
+  }
+
+  if (closestPoint && closestDistSq < settings.dragRadius * settings.dragRadius) {
+    draggedPoint = closestPoint;
+    draggedPoint.isFixed = true;
+  }
+}
+
+function handlePointDrag() {
+  // Перемещаем точку следом за мышкой
+  if (!draggedPoint) return;
+  
+  draggedPoint.position.x = mouseX;
+  draggedPoint.position.y = mouseY;
+  
+  // Обновляем старую позицию для корректной физики
+  draggedPoint.oldPosition.set(draggedPoint.position);
+}
+
+function mouseReleased() {
+  if (draggedPoint) {
+    draggedPoint.isFixed = false;
+    draggedPoint = null;
   }
 }
 
@@ -248,6 +302,7 @@ function resetSimulation() {
   // Clear all points and constraints
   points = [];
   constraints = [];
+  draggedPoint = null;
   
   // Recreate the circle
   const center = createVector(settings.canvasWidth / 2, settings.canvasHeight / 2 - 100);
