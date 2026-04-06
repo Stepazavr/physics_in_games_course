@@ -10,8 +10,9 @@ const settings = {
   gravity: { x: 0, y: 980 },
   timeStep: 0.01,
   solverIterations: 3,
-  restitution: 0.5,
+  restitution: 1.0,
   frictionCoefficient: 0.5, // Коэффициент трения (0 = нет, 1 = максимум)
+  dampingFactor: 0.99, // Дэмпинг скорости (0-1, где 1 = нет дэмпинга)
   
   // Circle
   circleCenter: { x: 0, y: 0 },
@@ -86,18 +87,27 @@ function draw() {
 // Simulation Core
 // =================================
 function simulate() {
-  applyGravity();
-  handlePointDrag();
-  updatePoints(settings.timeStep);
+  // 1-3. Интегрируем скорость, применяем дэмпинг и интегрируем позицию
+  integrateVelocityAndPosition(settings.timeStep);
   
-  // Use selected solver method
+  // 4. Обработка пользовательского ввода (захват мышю)
+  handlePointDrag();
+  
+  // 5. Обрабатываем коллизии 
+  updateCollisions();
+  
+  // 6. Разрешаем ограничения
   if (currentSolverMethod === 'hitman') {
     solveConstraints_Hitman(settings.solverIterations);
   } else if (currentSolverMethod === 'pbd') {
     solveConstraints_PBD(settings.solverIterations);
   }
   
-  handleCollisions();
+  // 7. Обновляем скорости после разрешения ограничений
+  updateAfterConstraints(settings.timeStep);
+  
+  // 8. Обновляем скорости при коллизии
+  updateVelocities();
 }
 
 // =================================
@@ -105,40 +115,103 @@ function simulate() {
 // =================================
 
 function approximateDistance(vectorDiff) {
-  // Быстрое вычисление длины вектора с аппроксимацией sqrt
+  // Быстрое вычисление длины вектора
   const dSquared = vectorDiff.x * vectorDiff.x + vectorDiff.y * vectorDiff.y;
   return Math.sqrt(dSquared);
 }
 
-function applyGravity() {
-  if (!gravityEnabled) return;
-  
+function integrateVelocityAndPosition(dt) {
+  // Интегрируем скорость, применяем дэмпинг и интегрируем позицию в один цикл
   for (const point of points) {
     if (point.isFixed) continue;
-    point.acceleration.add(settings.gravity.x, settings.gravity.y);
+    
+    // v_{k+1} = v_k + a_k * dt
+    point.velocity.add(p5.Vector.mult(point.acceleration, dt));
+    
+    // v *= dampingFactor (вязкое трение)
+    point.velocity.mult(settings.dampingFactor);
+    
+    // x_{predicted} = x_k + v_{k+1} * dt
+    point.positionPredicted.set(point.position);
+    point.positionPredicted.add(p5.Vector.mult(point.velocity, dt));
   }
 }
 
-function updatePoints(dt) {
-  if (!gravityEnabled) return;
-  
+function updateAfterConstraints(dt) {
+  // Обновляем позиции и скорости после разрешения ограничений:
+  // v = (x_constrained - x_old) / dt
+  // x = x_constrained
   for (const point of points) {
     if (point.isFixed) continue;
-    const velocity = p5.Vector.sub(point.position, point.oldPosition);
-    point.oldPosition.set(point.position);
-    const displacement = p5.Vector.mult(point.acceleration, dt * dt);
-    point.position.add(velocity).add(displacement);
-    point.acceleration.mult(0);
+    const displacement = p5.Vector.sub(point.positionPredicted, point.position);
+    point.velocity.set(displacement);
+    point.velocity.mult(1 / dt);
+    point.position.set(point.positionPredicted);
   }
+}
+
+function constrainPointToWalls(point) {
+  // Ограничиваем позицию точки в пределы сцены
+  if (point.position.x < 0) {
+    point.position.x = 0;
+  } else if (point.position.x > settings.sceneWidth) {
+    point.position.x = settings.sceneWidth;
+  }
+  
+  if (point.position.y < 0) {
+    point.position.y = 0;
+  } else if (point.position.y > settings.sceneHeight) {
+    point.position.y = settings.sceneHeight;
+  }
+}
+
+function applyCollisionVelocityResponse(point) {
+  // Применяем реституцию и трение при коллизии со стеной
+  const e = settings.restitution;
+  const mu = settings.frictionCoefficient;
+  
+  // Столкновение с левой/правой стеной
+  if (point.position.x <= 0 || point.position.x >= settings.sceneWidth) {
+    point.velocity.x *= -e;
+    point.velocity.y *= (1 - mu);
+  }
+  
+  // Столкновение с верхней/нижней стеной
+  if (point.position.y <= 0 || point.position.y >= settings.sceneHeight) {
+    point.velocity.y *= -e;
+    point.velocity.x *= (1 - mu);
+  }
+}
+
+function updateCollisions() {
+  // Ограничиваем позиции всех точек в пределы сцены
+  for (const point of points) {
+    constrainPointToWalls(point);
+  }
+}
+
+function updateVelocities() {
+  // Применяем эффекты коллизии к скоростям всех точек
+  for (const point of points) {
+    applyCollisionVelocityResponse(point);
+  }
+}
+
+function updateVelocitiesAfterCollisions(dt) {
+  // 1. Ограничиваем позиции в пределы сцены
+  updateCollisions();
+  
+  // 2. Применяем эффекты коллизии к скоростям
+  updateVelocities();
 }
 
 function solveConstraints_Hitman(iterations) {
-  // Итеративный метод Gauss-Seidel (исходный алгоритм Hitman)
+  // Ограничения теперь применяются к positionPredicted
   for (let i = 0; i < iterations; i++) {
     for (const constraint of constraints) {
       const { p1, p2, distance: restLength } = constraint;
       
-      const delta = p5.Vector.sub(p2.position, p1.position);
+      const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
       
       let deltaLength = settings.useApproximateRoot
         ? approximateDistance(delta)
@@ -155,111 +228,57 @@ function solveConstraints_Hitman(iterations) {
       
       if (p1.isFixed === false) {
         const correction = p5.Vector.mult(delta, invMass1 * diff);
-        p1.position.add(correction);
+        p1.positionPredicted.add(correction);
       }
       
       if (p2.isFixed === false) {
         const correction = p5.Vector.mult(delta, invMass2 * diff);
-        p2.position.sub(correction);
+        p2.positionPredicted.sub(correction);
       }
     }
   }
 }
 
 function solveConstraints_PBD(iterations) {
-  // Классический метод Position Based Dynamics по формутам:
-  // Δp_i = -s * w_i * ∇p_i(C)
-  // s = C / Σ(w_k * (∇p_k(C))^2)
-  
+  // Классический метод Position Based Dynamics:
+  // Эсто тработает с positionPredicted
   for (let i = 0; i < iterations; i++) {
     for (const constraint of constraints) {
       const { p1, p2, distance: restLength } = constraint;
       
-      // Вектор между точками
-      const delta = p5.Vector.sub(p2.position, p1.position);
+      const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
       const deltaLength = approximateDistance(delta);
       
       if (deltaLength < 1e-6) continue;
       
-      // Constraint function: C = ||p2 - p1|| - restLength
       const C = deltaLength - restLength;
       
-      // Gradient: ∇p1(C) = (p1 - p2) / ||p2 - p1||
-      //           ∇p2(C) = (p2 - p1) / ||p2 - p1||
       const gradP1 = p5.Vector.mult(delta, -1 / deltaLength);
       const gradP2 = p5.Vector.mult(delta, 1 / deltaLength);
       
-      // Inverse masses
       const w1 = p1.isFixed ? 0 : 1 / p1.mass;
       const w2 = p2.isFixed ? 0 : 1 / p2.mass;
       
-      // Denominator: Σ(w_k * (∇p_k(C))^2)
-      // Для двух точек: (∇p1(C))^2 = 1, (∇p2(C))^2 = 1
       const denom = w1 * 1 + w2 * 1;
       
       if (denom < 1e-6) continue;
       
-      // Масштабный множитель: s = C / denom
       const s = C / denom;
       
-      // Коррекция позиций: Δp_i = -s * w_i * ∇p_i(C)
       if (p1.isFixed === false) {
         const correction = p5.Vector.mult(gradP1, -s * w1);
-        p1.position.add(correction);
+        p1.positionPredicted.add(correction);
       }
       
       if (p2.isFixed === false) {
         const correction = p5.Vector.mult(gradP2, -s * w2);
-        p2.position.add(correction);
+        p2.positionPredicted.add(correction);
       }
     }
   }
 }
 
-function handleCollisions() {
-  for (const point of points) {
-    // Bottom wall
-    if (point.position.y > settings.sceneHeight) {
-      const velocity = p5.Vector.sub(point.position, point.oldPosition);
-      point.position.y = settings.sceneHeight;
-      // Применяем реституцию и трение о стену
-      velocity.y = velocity.y * settings.restitution;
-      velocity.x = velocity.x * (1 - settings.frictionCoefficient); // трение в тангенциальном направлении
-      point.oldPosition.y = point.position.y + velocity.y;
-      point.oldPosition.x = point.position.x - velocity.x;
-    }
-    
-    // Top wall
-    if (point.position.y < 0) {
-      const velocity = p5.Vector.sub(point.position, point.oldPosition);
-      point.position.y = 0;
-      velocity.y = -velocity.y * settings.restitution;
-      velocity.x = velocity.x * (1 - settings.frictionCoefficient);
-      point.oldPosition.y = point.position.y - velocity.y;
-      point.oldPosition.x = point.position.x - velocity.x;
-    }
-    
-    // Left wall
-    if (point.position.x < 0) {
-      const velocity = p5.Vector.sub(point.position, point.oldPosition);
-      point.position.x = 0;
-      velocity.x = -velocity.x * settings.restitution;
-      velocity.y = velocity.y * (1 - settings.frictionCoefficient);
-      point.oldPosition.x = point.position.x - velocity.x;
-      point.oldPosition.y = point.position.y - velocity.y;
-    }
-    
-    // Right wall
-    if (point.position.x > settings.sceneWidth) {
-      const velocity = p5.Vector.sub(point.position, point.oldPosition);
-      point.position.x = settings.sceneWidth;
-      velocity.x = velocity.x * settings.restitution;
-      velocity.y = velocity.y * (1 - settings.frictionCoefficient);
-      point.oldPosition.x = point.position.x + velocity.x;
-      point.oldPosition.y = point.position.y - velocity.y;
-    }
-  }
-}
+
 
 // =================================
 // Object Creation
@@ -270,7 +289,6 @@ function createCircle(center, radius, numPoints) {
   constraints = [];
 
   // Равномерное распределение точек по кругу
-  // Каждая точка на угле 360/N * i градусов
   for (let i = 0; i < numPoints; i++) {
     const angle = TWO_PI * (i / numPoints);
     
@@ -280,9 +298,10 @@ function createCircle(center, radius, numPoints) {
     const pos = createVector(x, y);
     
     const point = {
-      position: pos,
-      oldPosition: pos.copy(),
-      acceleration: createVector(0, 0),
+      position: pos.copy(),      // x - текущая позиция
+      velocity: createVector(0, 0),  // v - текущая скорость
+      acceleration: createVector(settings.gravity.x, settings.gravity.y),  // a - эскорение
+      positionPredicted: pos.copy(),  // p - временная позиция для ограничений
       mass: 1,
       isFixed: false,
     };
@@ -290,7 +309,7 @@ function createCircle(center, radius, numPoints) {
     points.push(point);
   }
 
-  // Create constraints between all pairs of points
+  // Создаем ограничения между всеми парами точек
   for (let i = 0; i < points.length; i++) {
     for (let j = i + 1; j < points.length; j++) {
       const p1 = points[i];
@@ -382,9 +401,8 @@ function handlePointDrag() {
   
   draggedPoint.position.x = mouseX;
   draggedPoint.position.y = mouseY;
-  
-  // Обновляем старую позицию для корректной физики
-  draggedPoint.oldPosition.set(draggedPoint.position);
+  draggedPoint.positionPredicted.set(draggedPoint.position);
+  draggedPoint.velocity.mult(0);  // Зануляем скорость захватанной точки
 }
 
 function mouseReleased() {
@@ -409,9 +427,14 @@ function changeSolverMethod(method) {
 function toggleGravity() {
   gravityEnabled = !gravityEnabled;
   
-  // Stop all movement when toggling gravity
+  // Зануляем скорость и обновляем ускорение при переключении гравитации
   for (const point of points) {
-    point.oldPosition.set(point.position);
+    point.velocity.mult(0);
+    if (!gravityEnabled) {
+      point.acceleration.set(0, 0);
+    } else {
+      point.acceleration.set(settings.gravity.x, settings.gravity.y);
+    }
   }
   
   const btn = document.getElementById('gravityBtn');
@@ -427,6 +450,13 @@ function resetSimulation() {
   // Recreate the circle
   const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 - 100);
   createCircle(center, settings.circleRadius, settings.circleNumPoints);
+  
+  // Применяем состояние гравитации к новым точкам
+  if (!gravityEnabled) {
+    for (const point of points) {
+      point.acceleration.set(0, 0);
+    }
+  }
 }
 
 // Initialize button handlers after the page loads
