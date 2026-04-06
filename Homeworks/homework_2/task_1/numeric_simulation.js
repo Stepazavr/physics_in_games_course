@@ -11,6 +11,7 @@ const settings = {
   timeStep: 0.01,
   solverIterations: 3,
   restitution: 0.5,
+  frictionCoefficient: 0.5, // Коэффициент трения (0 = нет, 1 = максимум)
   
   // Circle
   circleCenter: { x: 0, y: 0 },
@@ -217,32 +218,45 @@ function solveConstraints_PBD(iterations) {
 
 function handleCollisions() {
   for (const point of points) {
-    // Bottom wall (groundY)
+    // Bottom wall
     if (point.position.y > settings.sceneHeight) {
       const velocity = p5.Vector.sub(point.position, point.oldPosition);
       point.position.y = settings.sceneHeight;
-      point.oldPosition.y = point.position.y + velocity.y * settings.restitution;
+      // Применяем реституцию и трение о стену
+      velocity.y = velocity.y * settings.restitution;
+      velocity.x = velocity.x * (1 - settings.frictionCoefficient); // трение в тангенциальном направлении
+      point.oldPosition.y = point.position.y + velocity.y;
+      point.oldPosition.x = point.position.x - velocity.x;
     }
     
     // Top wall
     if (point.position.y < 0) {
       const velocity = p5.Vector.sub(point.position, point.oldPosition);
       point.position.y = 0;
-      point.oldPosition.y = point.position.y - velocity.y * settings.restitution;
+      velocity.y = -velocity.y * settings.restitution;
+      velocity.x = velocity.x * (1 - settings.frictionCoefficient);
+      point.oldPosition.y = point.position.y - velocity.y;
+      point.oldPosition.x = point.position.x - velocity.x;
     }
     
     // Left wall
     if (point.position.x < 0) {
       const velocity = p5.Vector.sub(point.position, point.oldPosition);
       point.position.x = 0;
-      point.oldPosition.x = point.position.x - velocity.x * settings.restitution;
+      velocity.x = -velocity.x * settings.restitution;
+      velocity.y = velocity.y * (1 - settings.frictionCoefficient);
+      point.oldPosition.x = point.position.x - velocity.x;
+      point.oldPosition.y = point.position.y - velocity.y;
     }
     
     // Right wall
     if (point.position.x > settings.sceneWidth) {
       const velocity = p5.Vector.sub(point.position, point.oldPosition);
       point.position.x = settings.sceneWidth;
-      point.oldPosition.x = point.position.x + velocity.x * settings.restitution;
+      velocity.x = velocity.x * settings.restitution;
+      velocity.y = velocity.y * (1 - settings.frictionCoefficient);
+      point.oldPosition.x = point.position.x + velocity.x;
+      point.oldPosition.y = point.position.y - velocity.y;
     }
   }
 }
