@@ -50,7 +50,8 @@ const settings = {
 // Data Structures
 // =================================
 let points = [];
-let constraints = [];
+let constraints = [];          // Постоянные ограничения (дистанции между точками)
+let frameCollisionConstraints = [];  // Ограничения коллизий на текущий кадр (очищаются каждый кадр)
 
 // Mouse and interaction
 let draggedPoint = null;
@@ -88,27 +89,34 @@ function draw() {
 // Simulation Core
 // =================================
 function simulate() {
-  // 1-3. Интегрируем скорость, применяем дэмпинг и интегрируем позицию
+  // 1. Очищаем коллизионные ограничения этого кадра
+  frameCollisionConstraints = [];
+  
+  // 2. Интегрируем скорость и позицию (БЕЗ обработки коллизий)
   integrateVelocityAndPosition(settings.timeStep);
   
-  // 4. Обработка пользовательского ввода (захват мышю)
+  // 3. Обработка пользовательского ввода (захват мышью)
   handlePointDrag();
   
-  // 5. Обрабатываем коллизии 
-  updateCollisions();
+  // 4. Обнаруживаем коллизии и добавляем их как ограничения
+  detectAndAddCollisions();
   
-  // 6. Разрешаем ограничения
+  // 5. Разрешаем ВСЕ ограничения (дистанционные + коллизионные)
+  const allConstraints = [...constraints, ...frameCollisionConstraints];
   if (currentSolverMethod === 'hitman') {
-    solveConstraints_Hitman(settings.solverIterations);
+    solveConstraints_Hitman(allConstraints, settings.solverIterations);
   } else if (currentSolverMethod === 'pbd') {
-    solveConstraints_PBD(settings.solverIterations);
+    solveConstraints_PBD(allConstraints, settings.solverIterations);
   }
   
-  // 7. Обновляем скорости после разрешения ограничений
+  // 6. Обновляем скорости и позиции после разрешения ограничений
   updateAfterConstraints(settings.timeStep);
   
-  // 8. Обновляем скорости при коллизии
-  updateVelocities();
+  // 7. Зажимаем позиции в границы сцены (hard constraint)
+  constrainAllPointsToWalls();
+  
+  // 8. Применяем трение и упругость через скорости (post-solve)
+  applyCollisionResponseToVelocities();
 }
 
 // =================================
@@ -122,17 +130,17 @@ function approximateDistance(vectorDiff) {
 }
 
 function integrateVelocityAndPosition(dt) {
-  // Интегрируем скорость, применяем дэмпинг и интегрируем позицию в один цикл
+  // Интегрируем скорость и позицию (БЕЗ обработки коллизий)
   for (const point of points) {
     if (point.isFixed) continue;
     
-    // v_{k+1} = v_k + a_k * dt
+    // 1. v_{k+1} = v_k + a_k * dt
     point.velocity.add(p5.Vector.mult(point.acceleration, dt));
     
-    // v *= dampingFactor (вязкое трение)
+    // 2. Применяем дэмпинг к обычной скорости
     point.velocity.mult(settings.dampingFactor);
     
-    // x_{predicted} = x_k + v_{k+1} * dt
+    // 3. x_{predicted} = x_k + v * dt
     point.positionPredicted.set(point.position);
     point.positionPredicted.add(p5.Vector.mult(point.velocity, dt));
   }
@@ -140,8 +148,9 @@ function integrateVelocityAndPosition(dt) {
 
 function updateAfterConstraints(dt) {
   // Обновляем позиции и скорости после разрешения ограничений:
-  // v = (x_constrained - x_old) / dt
+  // velocity = (x_constrained - x_old) / dt (восстанавливаем скорость из перемещения)
   // x = x_constrained
+  // finalVelocity обновится в следующем интегрирования
   for (const point of points) {
     if (point.isFixed) continue;
     const displacement = p5.Vector.sub(point.positionPredicted, point.position);
@@ -151,131 +160,260 @@ function updateAfterConstraints(dt) {
   }
 }
 
-function constrainPointToWalls(point) {
-  // Ограничиваем позицию точки в пределы сцены
-  if (point.position.x < 0) {
-    point.position.x = 0;
-  } else if (point.position.x > settings.sceneWidth) {
-    point.position.x = settings.sceneWidth;
-  }
-  
-  if (point.position.y < 0) {
-    point.position.y = 0;
-  } else if (point.position.y > settings.sceneHeight) {
-    point.position.y = settings.sceneHeight;
-  }
-}
-
-function updateVelocity(point) {
-  // Применяем упругость и трение при коллизии со стеной
-  const e = settings.flexibility;
-  const mu = settings.frictionCoefficient;
-  
-  // Столкновение с левой/правой стеной
-  if (point.position.x <= 0 || point.position.x >= settings.sceneWidth) {
-    point.velocity.x *= -e;
-    point.velocity.y *= (1 - mu);
-  }
-  
-  // Столкновение с верхней/нижней стеной
-  if (point.position.y <= 0 || point.position.y >= settings.sceneHeight) {
-    point.velocity.y *= -e;
-    point.velocity.x *= (1 - mu);
-  }
-}
-
-function updateCollisions() {
-  // Ограничиваем позиции всех точек в пределы сцены
+function detectAndAddCollisions() {
+  // Обнаруживаем коллизии со стенками и добавляем их как ограничения
+  // ВАЖНО: проверяем именно positionPredicted, так как ограничения решаются по ней!
   for (const point of points) {
-    constrainPointToWalls(point);
+    if (point.isFixed) continue;
+    
+    const padding = 0;
+    
+    // Левая стенка (x <= 0)
+    if (point.positionPredicted.x <= padding) {
+      const nx = 1;    // Нормаль указывает вправо (из сцены)
+      const ny = 0;
+      const qs_x = 0;  // Проекция на поверхность стены
+      const qs_y = point.positionPredicted.y;
+      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+    }
+    // Правая стенка (x >= width)
+    else if (point.positionPredicted.x >= settings.sceneWidth - padding) {
+      const nx = -1;
+      const ny = 0;
+      const qs_x = settings.sceneWidth;
+      const qs_y = point.positionPredicted.y;
+      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+    }
+    
+    // Верхняя стенка (y <= 0)
+    if (point.positionPredicted.y <= padding) {
+      const nx = 0;
+      const ny = 1;
+      const qs_x = point.positionPredicted.x;
+      const qs_y = 0;
+      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+    }
+    // Нижняя стенка (y >= height)
+    else if (point.positionPredicted.y >= settings.sceneHeight - padding) {
+      const nx = 0;
+      const ny = -1;
+      const qs_x = point.positionPredicted.x;
+      const qs_y = settings.sceneHeight;
+      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+    }
   }
 }
 
-function updateVelocities() {
-  // Применяем эффекты коллизии к скоростям всех точек
-  for (const point of points) {
-    updateVelocity(point);
-  }
-}
-
-function updateVelocitiesAfterCollisions(dt) {
-  // 1. Ограничиваем позиции в пределы сцены
-  updateCollisions();
+function createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y) {
+  // Создаём ограничение коллизии: C(p) = (p - qs) · n = 0
+  // Проверяем, нарушено ли ограничение: C(p) < 0 (точка внутри стены)
+  // ВАЖНО: используем positionPredicted для проверки!
+  const C = (point.positionPredicted.x - qs_x) * nx + (point.positionPredicted.y - qs_y) * ny;
   
-  // 2. Применяем эффекты коллизии к скоростям
-  updateVelocities();
+  // Добавляем ограничение только если оно нарушено
+  if (C < 0) {
+    frameCollisionConstraints.push({
+      type: 'collision',
+      p1: point,
+      normalX: nx,
+      normalY: ny,
+      surface_x: qs_x,  // Проекция точки на поверхность
+      surface_y: qs_y,
+      // Градиент C = (p - qs) · n по p1:
+      gradP1_x: nx,
+      gradP1_y: ny,
+    });
+  }
 }
 
-function solveConstraints_Hitman(iterations) {
-  // Ограничения теперь применяются к positionPredicted
+function constrainAllPointsToWalls() {
+  // Жёсткое зажатие позиции в границы сцены (hard constraint - гарантирует что точка не выйдет)
+  for (const point of points) {
+    if (point.position.x < 0) point.position.x = 0;
+    if (point.position.x > settings.sceneWidth) point.position.x = settings.sceneWidth;
+    if (point.position.y < 0) point.position.y = 0;
+    if (point.position.y > settings.sceneHeight) point.position.y = settings.sceneHeight;
+  }
+}
+
+function applyCollisionResponseToVelocities() {
+  // Post-solve: применяем трение и упругость через изменение скоростей
+  for (const constraint of frameCollisionConstraints) {
+    if (constraint.type !== 'collision') continue;
+    
+    const point = constraint.p1;
+    const nx = constraint.normalX;
+    const ny = constraint.normalY;
+    const e = settings.flexibility;
+    const mu = settings.frictionCoefficient;
+    
+    // Скорость в явном виде
+    const vx = point.velocity.x;
+    const vy = point.velocity.y;
+    
+    // Компонента вдоль нормали: v · n
+    const vDotN = vx * nx + vy * ny;
+    
+    // Если скорость направлена в стену (v · n < 0), применяем упругость
+    let newVx = vx;
+    let newVy = vy;
+    
+    if (vDotN < 0) {
+      // Формула упругого отражения: u = v - (1 + e)(v · n)n
+      const factor = (1 + e) * vDotN;
+      newVx = vx - factor * nx;
+      newVy = vy - factor * ny;
+    }
+    
+    // Применяем трение к касательной компоненте новой скорости
+    // Касательная = v - (v · n)n
+    const tangent_x = newVx - vDotN * nx;
+    const tangent_y = newVy - vDotN * ny;
+    
+    // После трения: tangent *= (1 - mu)
+    // Финальная скорость = нормальная + касательная_после_трения
+    const tangent_friction_x = tangent_x * (1 - mu);
+    const tangent_friction_y = tangent_y * (1 - mu);
+    
+    point.velocity.x = vDotN * nx + tangent_friction_x;
+    point.velocity.y = vDotN * ny + tangent_friction_y;
+  }
+}
+
+function solveConstraints_Hitman(allConstraints, iterations) {
+  // Метод Hitman (Gauss-Seidel итеративный) решает ВСЕ ограничения
   for (let i = 0; i < iterations; i++) {
-    for (const constraint of constraints) {
-      const { p1, p2, distance: restLength } = constraint;
-      
-      const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
-      
-      let deltaLength = settings.useApproximateRoot
-        ? approximateDistance(delta)
-        : Math.sqrt(delta.x * delta.x + delta.y * delta.y);
-      
-      if (deltaLength < 1e-6) continue;
-      
-      const invMass1 = p1.isFixed ? 0 : 1 / p1.mass;
-      const invMass2 = p2.isFixed ? 0 : 1 / p2.mass;
-      
-      if (invMass1 + invMass2 < 1e-6) continue;
-      
-      const diff = (deltaLength - restLength) / (deltaLength * (invMass1 + invMass2));
-      
-      if (p1.isFixed === false) {
-        const correction = p5.Vector.mult(delta, invMass1 * diff * settings.constraintStiffness);
-        p1.positionPredicted.add(correction);
+    for (const constraint of allConstraints) {
+      if (constraint.type === 'distance') {
+        // Дистанционное ограничение между двумя точками
+        solveDistanceConstraint_Hitman(constraint);
+      } else if (constraint.type === 'collision') {
+        // Коллизионное ограничение: просто выталкиваем точку из стены
+        solveCollisionConstraint_Hitman(constraint);
       }
-      
-      if (p2.isFixed === false) {
-        const correction = p5.Vector.mult(delta, invMass2 * diff * settings.constraintStiffness);
-        p2.positionPredicted.sub(correction);
+    }
+  }
+  
+}
+
+function solveDistanceConstraint_Hitman(constraint) {
+  const { p1, p2, distance: restLength } = constraint;
+  
+  const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
+  
+  let deltaLength = settings.useApproximateRoot
+    ? approximateDistance(delta)
+    : Math.sqrt(delta.x * delta.x + delta.y * delta.y);
+  
+  if (deltaLength < 1e-6) return;
+  
+  const invMass1 = p1.isFixed ? 0 : 1 / p1.mass;
+  const invMass2 = p2.isFixed ? 0 : 1 / p2.mass;
+  
+  if (invMass1 + invMass2 < 1e-6) return;
+  
+  const diff = (deltaLength - restLength) / (deltaLength * (invMass1 + invMass2));
+  
+  if (p1.isFixed === false) {
+    const correction = p5.Vector.mult(delta, invMass1 * diff * settings.constraintStiffness);
+    p1.positionPredicted.add(correction);
+  }
+  
+  if (p2.isFixed === false) {
+    const correction = p5.Vector.mult(delta, invMass2 * diff * settings.constraintStiffness);
+    p2.positionPredicted.sub(correction);
+  }
+}
+
+function solveCollisionConstraint_Hitman(constraint) {
+  // Коллизионное ограничение: C(p) = (p - qs) · n = 0
+  // Если C < 0, нужно выталкнуть точку вдоль нормали
+  const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
+  
+  const px = p1.positionPredicted.x;
+  const py = p1.positionPredicted.y;
+  
+  // C = (p - qs) · n
+  const C = (px - qs_x) * nx + (py - qs_y) * ny;
+  
+  // Если C < 0, выталкиваем вдоль нормали
+  if (C < 0) {
+    const correction = -C * settings.constraintStiffness;  // Сила выталкивания
+    p1.positionPredicted.x += correction * nx;
+    p1.positionPredicted.y += correction * ny;
+  }
+}
+
+function solveConstraints_PBD(allConstraints, iterations) {
+  // Метод PBD (Position Based Dynamics) решает ВСЕ ограничения единообразно
+  for (let i = 0; i < iterations; i++) {
+    for (const constraint of allConstraints) {
+      if (constraint.type === 'distance') {
+        solveDistanceConstraint_PBD(constraint);
+      } else if (constraint.type === 'collision') {
+        solveCollisionConstraint_PBD(constraint);
       }
     }
   }
 }
 
-function solveConstraints_PBD(iterations) {
-  // Классический метод Position Based Dynamics:
-  // Эсто тработает с positionPredicted
-  for (let i = 0; i < iterations; i++) {
-    for (const constraint of constraints) {
-      const { p1, p2, distance: restLength } = constraint;
-      
-      const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
-      const deltaLength = approximateDistance(delta);
-      
-      if (deltaLength < 1e-6) continue;
-      
-      const C = deltaLength - restLength;
-      
-      const gradP1 = p5.Vector.mult(delta, -1 / deltaLength);
-      const gradP2 = p5.Vector.mult(delta, 1 / deltaLength);
-      
-      const w1 = p1.isFixed ? 0 : 1 / p1.mass;
-      const w2 = p2.isFixed ? 0 : 1 / p2.mass;
-      
-      const denom = w1 * 1 + w2 * 1;
-      
-      if (denom < 1e-6) continue;
-      
-      const s = C / denom;
-      
-      if (p1.isFixed === false) {
-        const correction = p5.Vector.mult(gradP1, -s * w1 * settings.constraintStiffness);
-        p1.positionPredicted.add(correction);
-      }
-      
-      if (p2.isFixed === false) {
-        const correction = p5.Vector.mult(gradP2, -s * w2 * settings.constraintStiffness);
-        p2.positionPredicted.add(correction);
-      }
-    }
+function solveDistanceConstraint_PBD(constraint) {
+  const { p1, p2, distance: restLength } = constraint;
+  
+  const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
+  const deltaLength = approximateDistance(delta);
+  
+  if (deltaLength < 1e-6) return;
+  
+  const C = deltaLength - restLength;
+  
+  const gradP1 = p5.Vector.mult(delta, -1 / deltaLength);
+  const gradP2 = p5.Vector.mult(delta, 1 / deltaLength);
+  
+  const w1 = p1.isFixed ? 0 : 1 / p1.mass;
+  const w2 = p2.isFixed ? 0 : 1 / p2.mass;
+  
+  const denom = w1 * 1 + w2 * 1;
+  
+  if (denom < 1e-6) return;
+  
+  const s = C / denom;
+  
+  if (p1.isFixed === false) {
+    const correction = p5.Vector.mult(gradP1, -s * w1 * settings.constraintStiffness);
+    p1.positionPredicted.add(correction);
+  }
+  
+  if (p2.isFixed === false) {
+    const correction = p5.Vector.mult(gradP2, -s * w2 * settings.constraintStiffness);
+    p2.positionPredicted.add(correction);
+  }
+}
+
+function solveCollisionConstraint_PBD(constraint) {
+  // Коллизионное ограничение: C(p) = (p - qs) · n = 0
+  // Градиент: ∇C = n
+  const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
+  
+  const px = p1.positionPredicted.x;
+  const py = p1.positionPredicted.y;
+  
+  // C = (p - qs) · n = (px - qs_x)*nx + (py - qs_y)*ny
+  const C = (px - qs_x) * nx + (py - qs_y) * ny;
+  
+  // Обрабатываем только если нарушено (C < 0)
+  if (C < 0) {
+    const w1 = p1.isFixed ? 0 : 1 / p1.mass;
+    
+    if (w1 < 1e-6) return;
+    
+    // s = C / (∇C · ∇C * w1) = C / (1 * w1)
+    const s = C / w1;
+    
+    // Коррекция: p1 -= s * w1 * stiffness * ∇C = -C * stiffness * n
+    const correction = -s * w1 * settings.constraintStiffness;
+    p1.positionPredicted.x += correction * nx;
+    p1.positionPredicted.y += correction * ny;
   }
 }
 
@@ -301,7 +439,7 @@ function createCircle(center, radius, numPoints) {
     const point = {
       position: pos.copy(),      // x - текущая позиция
       velocity: createVector(0, 0),  // v - текущая скорость
-      acceleration: createVector(settings.gravity.x, settings.gravity.y),  // a - эскорение
+      acceleration: createVector(settings.gravity.x, settings.gravity.y),  // a - ускорение
       positionPredicted: pos.copy(),  // p - временная позиция для ограничений
       mass: 1,
       isFixed: false,
@@ -316,6 +454,7 @@ function createCircle(center, radius, numPoints) {
       const p1 = points[i];
       const p2 = points[j];
       constraints.push({
+        type: 'distance',
         p1: p1,
         p2: p2,
         distance: p5.Vector.dist(p1.position, p2.position),
