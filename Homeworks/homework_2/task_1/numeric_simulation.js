@@ -2,21 +2,20 @@
 // Simulation Settings
 // =================================
 const settings = {
-  // Canvas
-  canvasWidth: 800,
-  canvasHeight: 600,
+  // Scene dimensions
+  sceneWidth: 800,
+  sceneHeight: 600,
   
   // Gravity
   gravity: { x: 0, y: 980 },
   timeStep: 0.01,
   solverIterations: 3,
-  groundY: 600,
   restitution: 0.5,
   
   // Circle
   circleCenter: { x: 0, y: 0 },
-  circleRadius: 100,
-  circleNumPoints: 20,
+  circleRadius: 80,
+  circleNumPoints: 15,
   
   // Rendering
   backgroundColor: 200,
@@ -35,6 +34,10 @@ const settings = {
   
   // Mouse interaction
   dragRadius: 15,
+  
+  // Walls rendering
+  wallStrokeColor: { r: 100, g: 100, b: 100 },
+  wallStrokeWeight: 3,
 }
 
 // =================================
@@ -53,9 +56,9 @@ let gravityEnabled = true;
 // Setup
 // =================================
 function setup() {
-  createCanvas(settings.canvasWidth, settings.canvasHeight);
+  createCanvas(settings.sceneWidth, settings.sceneHeight);
   angleMode(RADIANS);
-  const center = createVector(settings.canvasWidth / 2, settings.canvasHeight / 2 - 100);
+  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 - 100);
   createCircle(center, settings.circleRadius, settings.circleNumPoints);
 }
 
@@ -70,7 +73,7 @@ function draw() {
   background(settings.backgroundColor);
 
   // Draw elements
-  drawGround();
+  drawWalls();
   drawCircle();
 }
 
@@ -152,10 +155,32 @@ function solveConstraints(iterations) {
 
 function handleCollisions() {
   for (const point of points) {
-    if (point.position.y > settings.groundY) {
+    // Bottom wall (groundY)
+    if (point.position.y > settings.sceneHeight) {
       const velocity = p5.Vector.sub(point.position, point.oldPosition);
-      point.position.y = settings.groundY;
+      point.position.y = settings.sceneHeight;
       point.oldPosition.y = point.position.y + velocity.y * settings.restitution;
+    }
+    
+    // Top wall
+    if (point.position.y < 0) {
+      const velocity = p5.Vector.sub(point.position, point.oldPosition);
+      point.position.y = 0;
+      point.oldPosition.y = point.position.y - velocity.y * settings.restitution;
+    }
+    
+    // Left wall
+    if (point.position.x < 0) {
+      const velocity = p5.Vector.sub(point.position, point.oldPosition);
+      point.position.x = 0;
+      point.oldPosition.x = point.position.x - velocity.x * settings.restitution;
+    }
+    
+    // Right wall
+    if (point.position.x > settings.sceneWidth) {
+      const velocity = p5.Vector.sub(point.position, point.oldPosition);
+      point.position.x = settings.sceneWidth;
+      point.oldPosition.x = point.position.x + velocity.x * settings.restitution;
     }
   }
 }
@@ -208,10 +233,21 @@ function createCircle(center, radius, numPoints) {
 // Rendering
 // =================================
 
-function drawGround() {
-  stroke(150);
-  strokeWeight(2);
-  line(0, settings.groundY, settings.canvasWidth, settings.groundY);
+function drawWalls() {
+  stroke(settings.wallStrokeColor.r, settings.wallStrokeColor.g, settings.wallStrokeColor.b);
+  strokeWeight(settings.wallStrokeWeight);
+  
+  // Bottom wall
+  line(0, settings.sceneHeight, settings.sceneWidth, settings.sceneHeight);
+  
+  // Top wall
+  line(0, 0, settings.sceneWidth, 0);
+  
+  // Left wall
+  line(0, 0, 0, settings.sceneHeight);
+  
+  // Right wall
+  line(settings.sceneWidth, 0, settings.sceneWidth, settings.sceneHeight);
 }
 
 function drawCircle() {
@@ -305,7 +341,7 @@ function resetSimulation() {
   draggedPoint = null;
   
   // Recreate the circle
-  const center = createVector(settings.canvasWidth / 2, settings.canvasHeight / 2 - 100);
+  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 - 100);
   createCircle(center, settings.circleRadius, settings.circleNumPoints);
 }
 
