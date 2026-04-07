@@ -596,6 +596,9 @@ function drawScene() {
   for (const point of points) {
     if (point === draggedPoint) {
       fill(255, 200, 0); // Yellow for dragged point
+    } else if (point.color) {
+      // Используем цвет точки, если он задан (для закрепленных точек)
+      fill(point.color.r, point.color.g, point.color.b);
     } else {
       fill(settings.pointColor.r, settings.pointColor.g, settings.pointColor.b);
     }

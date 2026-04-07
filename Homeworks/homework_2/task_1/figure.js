@@ -31,6 +31,7 @@ function createCircleFigure(name, center, radius, numPoints) {
       positionPredicted: pos.copy(),
       mass: 1,
       isFixed: false,
+      color: { r: 255, g: 255, b: 255 },  // Белый цвет по умолчанию
     };
     
     figure.points.push(point);
@@ -60,11 +61,12 @@ function createCircleFigure(name, center, radius, numPoints) {
 // Функция для создания ткани в виде сетки из точек
 // Точки связаны только с соседними (не по диагонали)
 
-function createGridFigure(name, topLeftPos, width, height, numRows, numCols) {
+function createGridFigure(name, topLeftPos, width, height, numRows, numCols, numFixedPoints = 0) {
   // Создаёт объект ткани-сетки с:
   // - name: имя/идентификатор фигуры
   // - points: массив точек в сетке (2D)
   // - constraints: массив ограничений (связи между соседними точками)
+  // - numFixedPoints: количество закрепленных верхних точек (по умолчанию 0 - не закреплены)
   
   const figure = {
     name: name,
@@ -93,11 +95,18 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols) {
         positionPredicted: pos.copy(),
         mass: 1,
         isFixed: false,
+        color: { r: 255, g: 255, b: 255 },  // Белый цвет по умолчанию
       };
       
       figure.points.push(point);
       figure.grid[row][col] = point;
     }
+  }
+
+  // Закрепляем верхние точки в зависимости от numFixedPoints
+  for (let col = 0; col < numFixedPoints; col++) {
+    figure.grid[0][col].isFixed = true;
+    figure.grid[0][col].color = { r: 255, g: 0, b: 0 };  // Красный цвет для закрепленных
   }
 
   // Создаём ограничения между соседними точками

@@ -15,12 +15,12 @@ function initScene() {
   figures.push(circle);
 
   // Создаём сетку-ткань
-  const gridTopLeft = createVector(100, 50);
+  const gridTopLeft = createVector(100, 0);  // y = 0, прикреплена в верхней части сцены
   const gridWidth = 300;
   const gridHeight = 200;
   const gridRows = 5;
   const gridCols = 8;
-
+  
   const grid = createGridFigure('grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols);
   figures.push(grid);
 }
