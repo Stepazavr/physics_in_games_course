@@ -554,6 +554,13 @@ function toggleGravity() {
   btn.textContent = gravityEnabled ? 'Гравитация: ВКЛ' : 'Гравитация: ВЫКЛ';
   draggedPoint = null;
   draggedFigure = null;
+}
+
+function resetSimulation() {
+  // Reinitialize the scene
+  initScene();
+  draggedPoint = null;
+  draggedFigure = null;
   
   // Применяем состояние гравитации к новым точкам
   if (!gravityEnabled) {
@@ -561,13 +568,7 @@ function toggleGravity() {
       for (const point of figure.points) {
         point.acceleration.set(0, 0);
       }
-  }
-  // Применяем состояние гравитации к новым точкам
-  if (!gravityEnabled) {
-    for (const point of points) {
-      point.acceleration.set(0, 0);
     }
-  }
   }
 }
 
