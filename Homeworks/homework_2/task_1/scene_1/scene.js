@@ -1,7 +1,7 @@
 // =================================
-// Scene 1 - Single Circle
+// Scene 1 - Single Circle and Grid Fabric
 // =================================
-// Инициализирует сцену: один круг в центре сцены
+// Инициализирует сцену: один круг в центре сцены и сетка-ткань
 
 function initScene() {
   figures = [];
@@ -13,4 +13,14 @@ function initScene() {
 
   const circle = createCircleFigure('circle_1', center, radius, numPoints);
   figures.push(circle);
+
+  // Создаём сетку-ткань
+  const gridTopLeft = createVector(100, 50);
+  const gridWidth = 300;
+  const gridHeight = 200;
+  const gridRows = 5;
+  const gridCols = 8;
+
+  const grid = createGridFigure('grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols);
+  figures.push(grid);
 }
