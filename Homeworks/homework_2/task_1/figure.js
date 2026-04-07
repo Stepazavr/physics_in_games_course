@@ -4,15 +4,19 @@
 // Функция для создания фигуры (например, круга с его точками и ограничениями)
 
 function createCircleFigure(name, center, radius, numPoints) {
-  // Создаёт объект фигуры с:
+  // Создаёт объект фigures с:
   // - name: имя/идентификатор фигуры
   // - points: массив точек
   // - constraints: массив ограничений внутри этой фигуры
+  // - center: центр фигуры
+  // - convex_points: массив выпуклых точек (для круга - все точки выпуклые)
   
   const figure = {
     name: name,
     points: [],
     constraints: [],
+    center: center.copy(),
+    convex_points: [],
   };
 
   // Равномерное распределение точек по кругу
@@ -24,6 +28,9 @@ function createCircleFigure(name, center, radius, numPoints) {
     
     const pos = createVector(x, y);
     
+    // Вычисляем нормаль (направление от центра к точке)
+    const normal = p5.Vector.sub(pos, center).normalize();
+    
     const point = {
       position: pos.copy(),
       velocity: createVector(0, 0),
@@ -31,10 +38,13 @@ function createCircleFigure(name, center, radius, numPoints) {
       positionPredicted: pos.copy(),
       mass: 1,
       isFixed: false,
+      isConvex: true,  // Для круга все точки выпуклые
+      normal: normal,   // Нормаль направлена от центра наружу
       color: { r: 255, g: 255, b: 255 },  // Белый цвет по умолчанию
     };
     
     figure.points.push(point);
+    figure.convex_points.push(point);  // Добавляем в массив выпуклых точек
   }
 
   // Создаём ограничения между всеми парами точек в этой фигуре
@@ -66,6 +76,8 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
   // - name: имя/идентификатор фигуры
   // - points: массив точек в сетке (2D)
   // - constraints: массив ограничений (связи между соседними точками)
+  // - center: центр фигуры
+  // - convex_points: массив выпуклых точек (крайние точки: первый/последний ряд и столбец)
   // - numFixedPoints: количество закрепленных верхних точек (по умолчанию 0 - не закреплены)
   
   const figure = {
@@ -73,6 +85,8 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
     points: [],
     constraints: [],
     grid: [],  // 2D массив для удобного доступа к точкам
+    center: createVector(topLeftPos.x + width / 2, topLeftPos.y + height / 2),  // Центр сетки
+    convex_points: [],  // Массив выпуклых точек (граница)
   };
 
   // Шаг между точками в сетке
@@ -88,6 +102,15 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
       
       const pos = createVector(x, y);
       
+      // Определяем, является ли точка выпуклой (граничной)
+      const isConvex = row === 0 || row === numRows - 1 || col === 0 || col === numCols - 1;
+      
+      // Вычисляем нормаль для выпуклых точек (направление от центра к точке)
+      let normal = createVector(0, 0);
+      if (isConvex) {
+        normal = p5.Vector.sub(pos, figure.center).normalize();
+      }
+      
       const point = {
         position: pos.copy(),
         velocity: createVector(0, 0),
@@ -95,11 +118,18 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
         positionPredicted: pos.copy(),
         mass: 1,
         isFixed: false,
+        isConvex: isConvex,  // Флаг выпуклой точки
+        normal: normal,      // Нормаль для выпуклых точек
         color: { r: 255, g: 255, b: 255 },  // Белый цвет по умолчанию
       };
       
       figure.points.push(point);
       figure.grid[row][col] = point;
+      
+      // Добавляем выпуклые точки в отдельный массив
+      if (isConvex) {
+        figure.convex_points.push(point);
+      }
     }
   }
 

@@ -16,10 +16,10 @@ function initScene() {
 
   // Создаём сетку-ткань, которая висит на закрепленных верхних точках
   const gridTopLeft = createVector(150, 0);  // y = 0, прикреплена в верхней части сцены
-  const gridWidth = 500;
-  const gridHeight = 350;
-  const gridRows = 20;
-  const gridCols = 20;
+  const gridWidth = 200;
+  const gridHeight = 10;
+  const gridRows = 10;
+  const gridCols = 5;
 
   // numFixedPoints = gridCols - закрепляем ВСЕ верхние точки (сцена-специфичный параметр)
   const grid = createGridFigure('hanging_grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols, gridCols);

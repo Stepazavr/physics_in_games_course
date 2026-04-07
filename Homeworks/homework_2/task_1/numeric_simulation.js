@@ -94,6 +94,7 @@ function simulate() {
   
   // 4. Обнаруживаем коллизии и добавляем их как ограничения
   detectAndAddCollisions();
+  detectObjectCollisions();
   
   // 5. Разрешаем ВСЕ ограничения (дистанционные + коллизионные)
   const allConstraints = [...constraints, ...frameCollisionConstraints];
@@ -745,5 +746,143 @@ window.addEventListener('load', () => {
     });
   }
 });
+
+function updateFigureCenter(figure) {
+  if (!figure.points || figure.points.length === 0) {
+    figure.center = createVector(0, 0);
+    return;
+  }
+
+  let centerX = 0;
+  let centerY = 0;
+  for (const point of figure.points) {
+    centerX += point.position.x;
+    centerY += point.position.y;
+  }
+  figure.center = createVector(centerX / figure.points.length, centerY / figure.points.length);
+
+  // Update normals for convex points
+  if (figure.convex_points) {
+    for (const point of figure.convex_points) {
+      point.normal = p5.Vector.sub(point.position, figure.center).normalize();
+    }
+  }
+}
+
+function detectObjectCollisions() {
+    // Проверяем столкновения между всеми парами фигур
+    for (let i = 0; i < figures.length; i++) {
+        for (let j = i + 1; j < figures.length; j++) {
+            const fig1 = figures[i];
+            const fig2 = figures[j];
+
+            if (!fig1.convex_points || !fig2.convex_points) continue;
+
+            // Обновляем центры обеих фигур перед проверкой
+            updateFigureCenter(fig1);
+            updateFigureCenter(fig2);
+
+            const pointRadius = settings.pointRadius;  // Радиус точки
+
+            // ============================================================
+            // Проверка столкновения fig1 -> fig2 (точки fig1 внутри fig2)
+            // ============================================================
+            for (const p1 of fig1.convex_points) {
+                // Найти ближайшую точку в fig2.convex_points к точке p1
+                let minDist = Infinity;
+                let closestIdx = 0;
+                for (let idx = 0; idx < fig2.convex_points.length; idx++) {
+                    const p = fig2.convex_points[idx];
+                    const dist = p5.Vector.dist(p1.positionPredicted, p.positionPredicted);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = idx;
+                    }
+                }
+                
+                // Проверяем два ребра с ближайшей точкой: (closestIdx-1, closestIdx) и (closestIdx, closestIdx+1)
+                const k = closestIdx;
+                
+                // Ребро 1: (k-1, k)
+                {
+                    const prevIdx = (k - 1 + fig2.convex_points.length) % fig2.convex_points.length;
+                    const p2 = fig2.convex_points[prevIdx];
+                    const p3 = fig2.convex_points[k];
+                    const edgeNormal = p5.Vector.add(p2.normal, p3.normal).normalize();
+                    const vectorToP1 = p5.Vector.sub(p1.positionPredicted, p2.positionPredicted);
+                    const distToEdge = vectorToP1.dot(edgeNormal);
+                    if (distToEdge < pointRadius) {
+                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                        p1.positionPredicted.x += pushForce * edgeNormal.x;
+                        p1.positionPredicted.y += pushForce * edgeNormal.y;
+                    }
+                }
+                
+                // Ребро 2: (k, k+1)
+                {
+                    const p2 = fig2.convex_points[k];
+                    const p3 = fig2.convex_points[(k + 1) % fig2.convex_points.length];
+                    const edgeNormal = p5.Vector.add(p2.normal, p3.normal).normalize();
+                    const vectorToP1 = p5.Vector.sub(p1.positionPredicted, p2.positionPredicted);
+                    const distToEdge = vectorToP1.dot(edgeNormal);
+                    if (distToEdge < pointRadius) {
+                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                        p1.positionPredicted.x += pushForce * edgeNormal.x;
+                        p1.positionPredicted.y += pushForce * edgeNormal.y;
+                    }
+                }
+            }
+
+            // ============================================================
+            // Проверка столкновения fig2 -> fig1 (точки fig2 внутри fig1)
+            // ============================================================
+            for (const p2 of fig2.convex_points) {
+                // Найти ближайшую точку в fig1.convex_points к точке p2
+                let minDist = Infinity;
+                let closestIdx = 0;
+                for (let idx = 0; idx < fig1.convex_points.length; idx++) {
+                    const p = fig1.convex_points[idx];
+                    const dist = p5.Vector.dist(p2.positionPredicted, p.positionPredicted);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = idx;
+                    }
+                }
+                
+                // Проверяем два ребра с ближайшей точкой: (closestIdx-1, closestIdx) и (closestIdx, closestIdx+1)
+                const k = closestIdx;
+                
+                // Ребро 1: (k-1, k)
+                {
+                    const prevIdx = (k - 1 + fig1.convex_points.length) % fig1.convex_points.length;
+                    const p1 = fig1.convex_points[prevIdx];
+                    const p3 = fig1.convex_points[k];
+                    const edgeNormal = p5.Vector.add(p1.normal, p3.normal).normalize();
+                    const vectorToP2 = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
+                    const distToEdge = vectorToP2.dot(edgeNormal);
+                    if (distToEdge < pointRadius) {
+                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                        p2.positionPredicted.x += pushForce * edgeNormal.x;
+                        p2.positionPredicted.y += pushForce * edgeNormal.y;
+                    }
+                }
+                
+                // Ребро 2: (k, k+1)
+                {
+                    const p1 = fig1.convex_points[k];
+                    const p3 = fig1.convex_points[(k + 1) % fig1.convex_points.length];
+                    const edgeNormal = p5.Vector.add(p1.normal, p3.normal).normalize();
+                    const vectorToP2 = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
+                    const distToEdge = vectorToP2.dot(edgeNormal);
+                    if (distToEdge < pointRadius) {
+                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                        p2.positionPredicted.x += pushForce * edgeNormal.x;
+                        p2.positionPredicted.y += pushForce * edgeNormal.y;
+                    }
+                }
+            }
+        }
+    }
+}
 
 
