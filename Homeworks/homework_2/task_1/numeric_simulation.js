@@ -22,7 +22,7 @@ const settings = {
   constraintStrokeWeight: 2,
   
   // Points rendering
-  pointRadius: 8,
+  pointRadius: 4,
   pointColor: { r: 255, g: 255, b: 255 },
   
   // Constraints
@@ -94,7 +94,7 @@ function simulate() {
   
   // 4. Обнаруживаем коллизии и добавляем их как ограничения
   detectAndAddCollisions();
-  detectObjectCollisions();
+  //detectObjectCollisions();
   
   // 4.5. Разрешаем самоколизии ткани
   //resolveClothSelfCollisions();
@@ -606,7 +606,8 @@ function drawScene() {
     } else {
       fill(settings.pointColor.r, settings.pointColor.g, settings.pointColor.b);
     }
-    circle(point.position.x, point.position.y, settings.pointRadius * 2);
+    const pointRadius = point.figure ? point.figure.pointRadius : settings.pointRadius;
+    circle(point.position.x, point.position.y, pointRadius * 2);
   }
 }
 
@@ -785,7 +786,8 @@ function detectObjectCollisions() {
             updateFigureCenter(fig1);
             updateFigureCenter(fig2);
 
-            const pointRadius = settings.pointRadius;  // Радиус точки
+            const pointRadius1 = fig1.pointRadius;
+            const pointRadius2 = fig2.pointRadius;
 
             // ============================================================
             // Проверка столкновения fig1 -> fig2 (точки fig1 внутри fig2)
@@ -814,8 +816,8 @@ function detectObjectCollisions() {
                     const edgeNormal = p5.Vector.add(p2.normal, p3.normal).normalize();
                     const vectorToP1 = p5.Vector.sub(p1.positionPredicted, p2.positionPredicted);
                     const distToEdge = vectorToP1.dot(edgeNormal);
-                    if (distToEdge < pointRadius) {
-                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                    if (distToEdge < pointRadius1) {
+                        const pushForce = (pointRadius1 - distToEdge) * settings.constraintStiffness;
                         p1.positionPredicted.x += pushForce * edgeNormal.x;
                         p1.positionPredicted.y += pushForce * edgeNormal.y;
                     }
@@ -828,8 +830,8 @@ function detectObjectCollisions() {
                     const edgeNormal = p5.Vector.add(p2.normal, p3.normal).normalize();
                     const vectorToP1 = p5.Vector.sub(p1.positionPredicted, p2.positionPredicted);
                     const distToEdge = vectorToP1.dot(edgeNormal);
-                    if (distToEdge < pointRadius) {
-                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                    if (distToEdge < pointRadius1) {
+                        const pushForce = (pointRadius1 - distToEdge) * settings.constraintStiffness;
                         p1.positionPredicted.x += pushForce * edgeNormal.x;
                         p1.positionPredicted.y += pushForce * edgeNormal.y;
                     }
@@ -863,8 +865,8 @@ function detectObjectCollisions() {
                     const edgeNormal = p5.Vector.add(p1.normal, p3.normal).normalize();
                     const vectorToP2 = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
                     const distToEdge = vectorToP2.dot(edgeNormal);
-                    if (distToEdge < pointRadius) {
-                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                    if (distToEdge < pointRadius2) {
+                        const pushForce = (pointRadius2 - distToEdge) * settings.constraintStiffness;
                         p2.positionPredicted.x += pushForce * edgeNormal.x;
                         p2.positionPredicted.y += pushForce * edgeNormal.y;
                     }
@@ -877,8 +879,8 @@ function detectObjectCollisions() {
                     const edgeNormal = p5.Vector.add(p1.normal, p3.normal).normalize();
                     const vectorToP2 = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
                     const distToEdge = vectorToP2.dot(edgeNormal);
-                    if (distToEdge < pointRadius) {
-                        const pushForce = (pointRadius - distToEdge) * settings.constraintStiffness;
+                    if (distToEdge < pointRadius2) {
+                        const pushForce = (pointRadius2 - distToEdge) * settings.constraintStiffness;
                         p2.positionPredicted.x += pushForce * edgeNormal.x;
                         p2.positionPredicted.y += pushForce * edgeNormal.y;
                     }
@@ -896,7 +898,7 @@ function resolveClothSelfCollisions() {
    * Разрешение самоколизий ткани (столкновения между точками одной фигуры)
    * 
    * ПАРАМЕТРЫ:
-   * R = settings.pointRadius = радиус частицы
+   * R = figure.pointRadius = радиус частицы
    * S = settings.solverIterations = количество подшагов
    * dt = settings.timeStep = размер временного шага
    * 
@@ -910,7 +912,6 @@ function resolveClothSelfCollisions() {
    *    - pos2 += direction * correction
    */
   
-  const R = settings.pointRadius;
   const S = settings.solverIterations;
   const dt = settings.timeStep;
   const d = 0.8; // Коэффициент демпфирования (0..1)
@@ -920,6 +921,7 @@ function resolveClothSelfCollisions() {
     if (!figure.points || figure.points.length < 2) continue;
     
     const pointsInFigure = figure.points;
+    const R = figure.pointRadius;  // Используем pointRadius из фигуры
     
     // Проверяем все пары точек в фигуре
     for (let i = 0; i < pointsInFigure.length; i++) {

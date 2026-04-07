@@ -17,6 +17,7 @@ function createCircleFigure(name, center, radius, numPoints) {
     constraints: [],
     center: center.copy(),
     convex_points: [],
+    pointRadius: 8,
   };
 
   // Равномерное распределение точек по кругу
@@ -41,6 +42,7 @@ function createCircleFigure(name, center, radius, numPoints) {
       isConvex: true,  // Для круга все точки выпуклые
       normal: normal,   // Нормаль направлена от центра наружу
       color: { r: 255, g: 255, b: 255 },  // Белый цвет по умолчанию
+      figure: figure,  // Ссылка на родительскую фигуру
     };
     
     figure.points.push(point);
@@ -87,6 +89,7 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
     grid: [],  // 2D массив для удобного доступа к точкам
     center: createVector(topLeftPos.x + width / 2, topLeftPos.y + height / 2),  // Центр сетки
     convex_points: [],  // Массив выпуклых точек (граница)
+    pointRadius: 4,
   };
 
   // Шаг между точками в сетке
@@ -121,6 +124,7 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
         isConvex: isConvex,  // Флаг выпуклой точки
         normal: normal,      // Нормаль для выпуклых точек
         color: { r: 255, g: 255, b: 255 },  // Белый цвет по умолчанию
+        figure: figure,  // Ссылка на родительскую фигуру
       };
       
       figure.points.push(point);

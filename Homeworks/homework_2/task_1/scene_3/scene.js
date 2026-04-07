@@ -11,8 +11,8 @@ function initScene() {
   const gridTopLeft = createVector(150, 50);
   const gridWidth = 500;
   const gridHeight = 350;
-  const gridRows = 10;
-  const gridCols = 10;
+  const gridRows = 30;
+  const gridCols = 30;
 
   // Создаём сетку БЕЗ автоматического закрепления верхних точек
   const grid = createGridFigure('stretched_grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols, 0);
