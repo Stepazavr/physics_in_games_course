@@ -14,11 +14,6 @@ const settings = {
   flexibility: 1.0, // Упругость при столкновениях (0 = нет, 1 = полная)
   frictionCoefficient: 0.5, // Коэффициент трения (0 = нет, 1 = максимум)
   
-  // Circle
-  circleCenter: { x: 0, y: 0 },
-  circleRadius: 80,
-  circleNumPoints: 15,
-  
   // Rendering
   backgroundColor: 200,
   
@@ -65,8 +60,7 @@ let currentSolverMethod = 'hitman';
 function setup() {
   createCanvas(settings.sceneWidth, settings.sceneHeight);
   angleMode(RADIANS);
-  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 - 100);
-  createCircle(center, settings.circleRadius, settings.circleNumPoints);
+  initScene();
 }
 
 // =================================
@@ -81,7 +75,7 @@ function draw() {
 
   // Draw elements
   drawWalls();
-  drawCircle();
+  drawScene();
 }
 
 // =================================
@@ -417,52 +411,6 @@ function solveCollisionConstraint_PBD(constraint) {
 }
 
 
-
-// =================================
-// Object Creation
-// =================================
-
-function createCircle(center, radius, numPoints) {
-  points = [];
-  constraints = [];
-
-  // Равномерное распределение точек по кругу
-  for (let i = 0; i < numPoints; i++) {
-    const angle = TWO_PI * (i / numPoints);
-    
-    const x = center.x + radius * cos(angle);
-    const y = center.y + radius * sin(angle);
-    
-    const pos = createVector(x, y);
-    
-    const point = {
-      position: pos.copy(),      // x - текущая позиция
-      velocity: createVector(0, 0),  // v - текущая скорость
-      acceleration: createVector(settings.gravity.x, settings.gravity.y),  // a - ускорение
-      positionPredicted: pos.copy(),  // p - временная позиция для ограничений
-      mass: 1,
-      isFixed: false,
-    };
-    
-    points.push(point);
-  }
-
-  // Создаем ограничения между всеми парами точек
-  for (let i = 0; i < points.length; i++) {
-    for (let j = i + 1; j < points.length; j++) {
-      const p1 = points[i];
-      const p2 = points[j];
-      constraints.push({
-        type: 'distance',
-        p1: p1,
-        p2: p2,
-        distance: p5.Vector.dist(p1.position, p2.position),
-      });
-    }
-  }
-}
-
-
 // =================================
 // Rendering
 // =================================
@@ -484,7 +432,7 @@ function drawWalls() {
   line(settings.sceneWidth, 0, settings.sceneWidth, settings.sceneHeight);
 }
 
-function drawCircle() {
+function drawScene() {
   // Draw constraints
   stroke(settings.constraintStrokeColor.r, settings.constraintStrokeColor.g, 
          settings.constraintStrokeColor.b, settings.constraintStrokeColor.a);
@@ -581,14 +529,8 @@ function toggleGravity() {
 }
 
 function resetSimulation() {
-  // Clear all points and constraints
-  points = [];
-  constraints = [];
-  draggedPoint = null;
-  
-  // Recreate the circle
-  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 - 100);
-  createCircle(center, settings.circleRadius, settings.circleNumPoints);
+  // Reinitialize the scene
+  initScene();
   
   // Применяем состояние гравитации к новым точкам
   if (!gravityEnabled) {
