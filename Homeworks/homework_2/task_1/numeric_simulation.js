@@ -43,12 +43,13 @@ const settings = {
 // =================================
 // Data Structures
 // =================================
-let points = [];
-let constraints = [];          // Постоянные ограничения (дистанции между точками)
-let frameCollisionConstraints = [];  // Ограничения коллизий на текущий кадр (очищаются каждый кадр)
+let figures = [];          // Массив объектов фигур (каждая фигура содержит свои points и constraints)
+let points = [];           // Временный массив всех точек со всех фигур (для каждого кадра)
+let constraints = [];      // Временный массив всех ограничений со всех фигур (для каждого кадра)
 
 // Mouse and interaction
 let draggedPoint = null;
+let draggedFigure = null;  // Какой фигуре принадлежит захваченная точка
 
 // Simulation state
 let gravityEnabled = true;
@@ -82,6 +83,8 @@ function draw() {
 // Simulation Core
 // =================================
 function simulate() {
+  // Собираем все точки и ограничения со всех фигур
+  collectPointsAndConstraints();
 
   // 2. Интегрируем скорость и позицию (БЕЗ обработки коллизий)
   integrateVelocityAndPosition(settings.timeStep);
@@ -108,6 +111,22 @@ function simulate() {
   
   // 8. Применяем трение и упругость через скорости (post-solve)
   applyCollisionResponseToVelocities();
+}
+
+function collectPointsAndConstraints() {
+  // Собираем все точки и все ограничения со всех фигур
+  points = [];
+  constraints = [];
+  frameCollisionConstraints = [];
+
+  for (const figure of figures) {
+    for (const point of figure.points) {
+      points.push(point);
+    }
+    for (const constraint of figure.constraints) {
+      constraints.push(constraint);
+    }
+  }
 }
 
 // =================================
@@ -461,23 +480,28 @@ function drawScene() {
 // =================================
 
 function mousePressed() {
-  // Ищем ближайшую точку к позиции мышки
+  // Ищем ближайшую точку к позиции мышки среди всех фигур
   let closestDistSq = Infinity;
   let closestPoint = null;
+  let closestFigure = null;
 
-  for (const point of points) {
-    const dx = point.position.x - mouseX;
-    const dy = point.position.y - mouseY;
-    const distSq = dx * dx + dy * dy;
+  for (const figure of figures) {
+    for (const point of figure.points) {
+      const dx = point.position.x - mouseX;
+      const dy = point.position.y - mouseY;
+      const distSq = dx * dx + dy * dy;
 
-    if (distSq < closestDistSq) {
-      closestDistSq = distSq;
-      closestPoint = point;
+      if (distSq < closestDistSq) {
+        closestDistSq = distSq;
+        closestPoint = point;
+        closestFigure = figure;
+      }
     }
   }
 
   if (closestPoint && closestDistSq < settings.dragRadius * settings.dragRadius) {
     draggedPoint = closestPoint;
+    draggedFigure = closestFigure;
     draggedPoint.isFixed = true;
   }
 }
@@ -515,28 +539,35 @@ function toggleGravity() {
   gravityEnabled = !gravityEnabled;
   
   // Зануляем скорость и обновляем ускорение при переключении гравитации
-  for (const point of points) {
-    point.velocity.mult(0);
-    if (!gravityEnabled) {
-      point.acceleration.set(0, 0);
-    } else {
-      point.acceleration.set(settings.gravity.x, settings.gravity.y);
+  for (const figure of figures) {
+    for (const point of figure.points) {
+      point.velocity.mult(0);
+      if (!gravityEnabled) {
+        point.acceleration.set(0, 0);
+      } else {
+        point.acceleration.set(settings.gravity.x, settings.gravity.y);
+      }
     }
   }
   
   const btn = document.getElementById('gravityBtn');
   btn.textContent = gravityEnabled ? 'Гравитация: ВКЛ' : 'Гравитация: ВЫКЛ';
-}
-
-function resetSimulation() {
-  // Reinitialize the scene
-  initScene();
+  draggedPoint = null;
+  draggedFigure = null;
   
+  // Применяем состояние гравитации к новым точкам
+  if (!gravityEnabled) {
+    for (const figure of figures) {
+      for (const point of figure.points) {
+        point.acceleration.set(0, 0);
+      }
+  }
   // Применяем состояние гравитации к новым точкам
   if (!gravityEnabled) {
     for (const point of points) {
       point.acceleration.set(0, 0);
     }
+  }
   }
 }
 
