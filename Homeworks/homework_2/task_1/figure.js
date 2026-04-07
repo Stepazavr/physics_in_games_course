@@ -46,6 +46,7 @@ function createCircleFigure(name, center, radius, numPoints) {
         p1: p1,
         p2: p2,
         distance: p5.Vector.dist(p1.position, p2.position),
+        lambda: 0,  // Множитель Лагранжа для XPBD
       });
     }
   }

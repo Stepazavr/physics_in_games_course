@@ -101,6 +101,8 @@ function simulate() {
     solveConstraints_Hitman(allConstraints, settings.solverIterations);
   } else if (currentSolverMethod === 'pbd') {
     solveConstraints_PBD(allConstraints, settings.solverIterations);
+  } else if (currentSolverMethod === 'xpbd') {
+    solveConstraints_XPBD(allConstraints, settings.solverIterations);
   }
   
   // 6. Обновляем скорости и позиции после разрешения ограничений
@@ -234,6 +236,7 @@ function createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y) {
       // Градиент C = (p - qs) · n по p1:
       gradP1_x: nx,
       gradP1_y: ny,
+      lambda: 0,  // Множитель Лагранжа для XPBD
     });
   }
 }
@@ -426,6 +429,131 @@ function solveCollisionConstraint_PBD(constraint) {
     const correction = -s * w1 * settings.constraintStiffness;
     p1.positionPredicted.x += correction * nx;
     p1.positionPredicted.y += correction * ny;
+  }
+}
+
+// =================================
+// XPBD Solver
+// =================================
+
+function solveConstraints_XPBD(allConstraints, iterations) {
+  // Обнуляем ВСЕ лямбды в начале solve (как в XPBD алгоритме)
+  for (const constraint of allConstraints) {
+    if (constraint.type === 'distance' || constraint.type === 'collision') {
+      constraint.lambda = 0;
+    }
+  }
+  
+  // Метод XPBD (Extended Position Based Dynamics) решает ВСЕ ограничения
+  // Использует множители Лагранжа для физически корректного контроля жесткости
+  for (let i = 0; i < iterations; i++) {
+    for (const constraint of allConstraints) {
+      if (constraint.type === 'distance') {
+        solveDistanceConstraint_XPBD(constraint);
+      } else if (constraint.type === 'collision') {
+        solveCollisionConstraint_XPBD(constraint);
+      }
+    }
+  }
+}
+
+function solveDistanceConstraint_XPBD(constraint) {
+  // XPBD метод для ограничения расстояния
+  // Инициализируем lambda если его нет
+  if (constraint.lambda === undefined) {
+    constraint.lambda = 0;
+  }
+  
+  const { p1, p2, distance: restLength } = constraint;
+  
+  const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
+  const deltaLength = approximateDistance(delta);
+  
+  if (deltaLength < 1e-6) return;
+  
+  // Нормализуем градиент
+  const gradP1_x = -delta.x / deltaLength;
+  const gradP1_y = -delta.y / deltaLength;
+  const gradP2_x = delta.x / deltaLength;
+  const gradP2_y = delta.y / deltaLength;
+  
+  // Вычисляем значение ограничения (ошибка)
+  const C = deltaLength - restLength;
+  
+  // Обратная жесткость (compliance)
+  const k = settings.constraintStiffness;
+  const compliance = k > 0 ? 1.0 / k : 0;
+  
+  // Вычисляем весовые коэффициенты
+  const w1 = p1.isFixed ? 0 : 1 / p1.mass;
+  const w2 = p2.isFixed ? 0 : 1 / p2.mass;
+  
+  // Вычисляем градиент · градиент
+  const gradGrad = 1.0 * (w1 + w2); // Так как |grad| = 1
+  
+  if (w1 + w2 < 1e-6) return;
+  
+  // Вычисляем изменение множителя Лагранжа
+  const denom = gradGrad + compliance;
+  const deltaLambda = -(C + compliance * constraint.lambda) / denom;
+  
+  // Обновляем множитель Лагранжа
+  constraint.lambda += deltaLambda;
+  
+  // Применяем коррекцию позиций
+  if (p1.isFixed === false) {
+    const correctionMag = deltaLambda * w1;
+    p1.positionPredicted.x += correctionMag * gradP1_x;
+    p1.positionPredicted.y += correctionMag * gradP1_y;
+  }
+  
+  if (p2.isFixed === false) {
+    const correctionMag = deltaLambda * w2;
+    p2.positionPredicted.x += correctionMag * gradP2_x;
+    p2.positionPredicted.y += correctionMag * gradP2_y;
+  }
+}
+
+function solveCollisionConstraint_XPBD(constraint) {
+  // XPBD метод для коллизионного ограничения
+  // Инициализируем lambda если его нет
+  if (constraint.lambda === undefined) {
+    constraint.lambda = 0;
+  }
+  
+  const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
+  
+  const px = p1.positionPredicted.x;
+  const py = p1.positionPredicted.y;
+  
+  // C = (p - qs) · n = (px - qs_x)*nx + (py - qs_y)*ny
+  const C = (px - qs_x) * nx + (py - qs_y) * ny;
+  
+  // Обрабатываем только если нарушено (C < 0)
+  if (C < 0) {
+    // Обратная жесткость (compliance)
+    const k = settings.constraintStiffness;
+    const compliance = k > 0 ? 1.0 / k : 0;
+    
+    // Вычисляем весовой коэффициент
+    const w1 = p1.isFixed ? 0 : 1 / p1.mass;
+    
+    if (w1 < 1e-6) return;
+    
+    // Вычисляем градиент · градиент (|n| = 1)
+    const gradGrad = 1.0 * w1;
+    
+    // Вычисляем изменение множителя Лагранжа
+    const denom = gradGrad + compliance;
+    const deltaLambda = -(C + compliance * constraint.lambda) / denom;
+    
+    // Обновляем множитель Лагранжа
+    constraint.lambda += deltaLambda;
+    
+    // Применяем коррекцию позиции
+    const correctionMag = deltaLambda * w1;
+    p1.positionPredicted.x += correctionMag * nx;
+    p1.positionPredicted.y += correctionMag * ny;
   }
 }
 
