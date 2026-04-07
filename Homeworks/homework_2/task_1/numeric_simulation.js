@@ -2,56 +2,45 @@
 // Simulation Settings
 // =================================
 const settings = {
-  // Scene dimensions
   sceneWidth: 800,
   sceneHeight: 600,
   
-  // Gravity
   gravity: { x: 0, y: 980 },
   timeStep: 0.01,
   solverIterations: 3,
-  constraintStiffness: 1.0, // Жесткость ограничений (0 = нет, 1 = полная)
-  flexibility: 1.0, // Упругость при столкновениях (0 = нет, 1 = полная)
-  frictionCoefficient: 0.5, // Коэффициент трения (0 = нет, 1 = максимум)
+  constraintStiffness: 1.0,
+  flexibility: 1.0,
+  frictionCoefficient: 0.5,
   
-  // Rendering
   backgroundColor: 200,
   
-  // Constraints rendering
   constraintStrokeColor: { r: 100, g: 100, b: 255, a: 80 },
   constraintStrokeWeight: 2,
   
-  // Points rendering
   pointRadius: 4,
   pointColor: { r: 255, g: 255, b: 255 },
   
-  // Constraints
   constraintErrorThreshold: 1e-1,
   useApproximateRoot: true,
   
-  // Mouse interaction
   dragRadius: 15,
   
-  // Walls rendering
   wallStrokeColor: { r: 100, g: 100, b: 100 },
   wallStrokeWeight: 3,
   
-  // Solver method
-  solverMethod: 'hitman', // 'hitman', 'pbd'
+  solverMethod: 'hitman',
 }
 
 // =================================
 // Data Structures
 // =================================
-let figures = [];          // Массив объектов фигур (каждая фигура содержит свои points и constraints)
-let points = [];           // Временный массив всех точек со всех фигур (для каждого кадра)
-let constraints = [];      // Временный массив всех ограничений со всех фигур (для каждого кадра)
+let figures = [];
+let points = [];
+let constraints = [];
 
-// Mouse and interaction
 let draggedPoint = null;
-let draggedFigure = null;  // Какой фигуре принадлежит захваченная точка
+let draggedFigure = null;
 
-// Simulation state
 let gravityEnabled = true;
 let currentSolverMethod = 'hitman';
 
@@ -83,23 +72,14 @@ function draw() {
 // Simulation Core
 // =================================
 function simulate() {
-  // Собираем все точки и ограничения со всех фигур
   collectPointsAndConstraints();
 
-  // 2. Интегрируем скорость и позицию (БЕЗ обработки коллизий)
   integrateVelocityAndPosition(settings.timeStep);
   
-  // 3. Обработка пользовательского ввода (захват мышью)
   handlePointDrag();
   
-  // 4. Обнаруживаем коллизии и добавляем их как ограничения
   detectAndAddCollisions();
-  //detectObjectCollisions();
   
-  // 4.5. Разрешаем самоколизии ткани
-  //resolveClothSelfCollisions();
-  
-  // 5. Разрешаем ВСЕ ограничения (дистанционные + коллизионные)
   const allConstraints = [...constraints, ...frameCollisionConstraints];
   if (currentSolverMethod === 'hitman') {
     solveConstraints_Hitman(allConstraints, settings.solverIterations);
@@ -109,18 +89,14 @@ function simulate() {
     solveConstraints_XPBD(allConstraints, settings.solverIterations);
   }
   
-  // 6. Обновляем скорости и позиции после разрешения ограничений
   updateAfterConstraints(settings.timeStep);
   
-  // 7. Зажимаем позиции в границы сцены (hard constraint)
   constrainAllPointsToWalls();
   
-  // 8. Применяем трение и упругость через скорости (post-solve)
   applyCollisionResponseToVelocities();
 }
 
 function collectPointsAndConstraints() {
-  // Собираем все точки и все ограничения со всех фигур
   points = [];
   constraints = [];
   frameCollisionConstraints = [];
@@ -140,30 +116,22 @@ function collectPointsAndConstraints() {
 // =================================
 
 function approximateDistance(vectorDiff) {
-  // Быстрое вычисление длины вектора
   const dSquared = vectorDiff.x * vectorDiff.x + vectorDiff.y * vectorDiff.y;
   return Math.sqrt(dSquared);
 }
 
 function integrateVelocityAndPosition(dt) {
-  // Интегрируем скорость и позицию (БЕЗ обработки коллизий)
   for (const point of points) {
     if (point.isFixed) continue;
     
-    // 1. v_{k+1} = v_k + a_k * dt
     point.velocity.add(p5.Vector.mult(point.acceleration, dt));
     
-    // 2. x_{predicted} = x_k + v_{k+1} * dt
     point.positionPredicted.set(point.position);
     point.positionPredicted.add(p5.Vector.mult(point.velocity, dt));
   }
 }
 
 function updateAfterConstraints(dt) {
-  // Обновляем позиции и скорости после разрешения ограничений:
-  // velocity = (x_constrained - x_old) / dt (восстанавливаем скорость из перемещения)
-  // x = x_constrained
-  // finalVelocity обновится в следующем интегрирования
   for (const point of points) {
     if (point.isFixed) continue;
     const displacement = p5.Vector.sub(point.positionPredicted, point.position);
@@ -174,27 +142,20 @@ function updateAfterConstraints(dt) {
 }
 
 function detectAndAddCollisions() {
-  // Обнаруживаем коллизии со стенками и добавляем их как ограничения
-  // ВАЖНО: проверяем именно positionPredicted, так как ограничения решаются по ней!
-
-    // 1. Очищаем коллизионные ограничения этого кадра
   frameCollisionConstraints = [];
-
 
   for (const point of points) {
     if (point.isFixed) continue;
     
     const padding = 0;
     
-    // Левая стенка (x <= 0)
     if (point.positionPredicted.x <= padding) {
-      const nx = 1;    // Нормаль указывает вправо (из сцены)
+      const nx = 1;
       const ny = 0;
-      const qs_x = 0;  // Проекция на поверхность стены
+      const qs_x = 0;
       const qs_y = point.positionPredicted.y;
       createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
     }
-    // Правая стенка (x >= width)
     else if (point.positionPredicted.x >= settings.sceneWidth - padding) {
       const nx = -1;
       const ny = 0;
@@ -203,7 +164,6 @@ function detectAndAddCollisions() {
       createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
     }
     
-    // Верхняя стенка (y <= 0)
     if (point.positionPredicted.y <= padding) {
       const nx = 0;
       const ny = 1;
@@ -211,7 +171,6 @@ function detectAndAddCollisions() {
       const qs_y = 0;
       createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
     }
-    // Нижняя стенка (y >= height)
     else if (point.positionPredicted.y >= settings.sceneHeight - padding) {
       const nx = 0;
       const ny = -1;
@@ -223,30 +182,24 @@ function detectAndAddCollisions() {
 }
 
 function createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y) {
-  // Создаём ограничение коллизии: C(p) = (p - qs) · n = 0
-  // Проверяем, нарушено ли ограничение: C(p) < 0 (точка внутри стены)
-  // ВАЖНО: используем positionPredicted для проверки!
   const C = (point.positionPredicted.x - qs_x) * nx + (point.positionPredicted.y - qs_y) * ny;
   
-  // Добавляем ограничение только если оно нарушено
   if (C < 0) {
     frameCollisionConstraints.push({
       type: 'collision',
       p1: point,
       normalX: nx,
       normalY: ny,
-      surface_x: qs_x,  // Проекция точки на поверхность
+      surface_x: qs_x,
       surface_y: qs_y,
-      // Градиент C = (p - qs) · n по p1:
       gradP1_x: nx,
       gradP1_y: ny,
-      lambda: 0,  // Множитель Лагранжа для XPBD
+      lambda: 0,
     });
   }
 }
 
 function constrainAllPointsToWalls() {
-  // Жёсткое зажатие позиции в границы сцены (hard constraint - гарантирует что точка не выйдет)
   for (const point of points) {
     if (point.position.x < 0) point.position.x = 0;
     if (point.position.x > settings.sceneWidth) point.position.x = settings.sceneWidth;
@@ -256,7 +209,6 @@ function constrainAllPointsToWalls() {
 }
 
 function applyCollisionResponseToVelocities() {
-  // Post-solve: применяем трение и упругость через изменение скоростей
   for (const constraint of frameCollisionConstraints) {
     if (constraint.type !== 'collision') continue;
     
@@ -266,31 +218,23 @@ function applyCollisionResponseToVelocities() {
     const e = settings.flexibility;
     const mu = settings.frictionCoefficient;
     
-    // Скорость в явном виде
     const vx = point.velocity.x;
     const vy = point.velocity.y;
     
-    // Компонента вдоль нормали: v · n
     const vDotN = vx * nx + vy * ny;
     
-    // Если скорость направлена в стену (v · n < 0), применяем упругость
     let newVx = vx;
     let newVy = vy;
     
     if (vDotN < 0) {
-      // Формула упругого отражения: u = v - (1 + e)(v · n)n
       const factor = (1 + e) * vDotN;
       newVx = vx - factor * nx;
       newVy = vy - factor * ny;
     }
     
-    // Применяем трение к касательной компоненте новой скорости
-    // Касательная = v - (v · n)n
     const tangent_x = newVx - vDotN * nx;
     const tangent_y = newVy - vDotN * ny;
     
-    // После трения: tangent *= (1 - mu)
-    // Финальная скорость = нормальная + касательная_после_трения
     const tangent_friction_x = tangent_x * (1 - mu);
     const tangent_friction_y = tangent_y * (1 - mu);
     
@@ -300,19 +244,15 @@ function applyCollisionResponseToVelocities() {
 }
 
 function solveConstraints_Hitman(allConstraints, iterations) {
-  // Метод Hitman (Gauss-Seidel итеративный) решает ВСЕ ограничения
   for (let i = 0; i < iterations; i++) {
     for (const constraint of allConstraints) {
       if (constraint.type === 'distance') {
-        // Дистанционное ограничение между двумя точками
         solveDistanceConstraint_Hitman(constraint);
       } else if (constraint.type === 'collision') {
-        // Коллизионное ограничение: просто выталкиваем точку из стены
         solveCollisionConstraint_Hitman(constraint);
       }
     }
   }
-  
 }
 
 function solveDistanceConstraint_Hitman(constraint) {
@@ -345,26 +285,21 @@ function solveDistanceConstraint_Hitman(constraint) {
 }
 
 function solveCollisionConstraint_Hitman(constraint) {
-  // Коллизионное ограничение: C(p) = (p - qs) · n = 0
-  // Если C < 0, нужно выталкнуть точку вдоль нормали
   const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
   
   const px = p1.positionPredicted.x;
   const py = p1.positionPredicted.y;
   
-  // C = (p - qs) · n
   const C = (px - qs_x) * nx + (py - qs_y) * ny;
   
-  // Если C < 0, выталкиваем вдоль нормали
   if (C < 0) {
-    const correction = -C * settings.constraintStiffness;  // Сила выталкивания
+    const correction = -C * settings.constraintStiffness;
     p1.positionPredicted.x += correction * nx;
     p1.positionPredicted.y += correction * ny;
   }
 }
 
 function solveConstraints_PBD(allConstraints, iterations) {
-  // Метод PBD (Position Based Dynamics) решает ВСЕ ограничения единообразно
   for (let i = 0; i < iterations; i++) {
     for (const constraint of allConstraints) {
       if (constraint.type === 'distance') {
@@ -410,26 +345,20 @@ function solveDistanceConstraint_PBD(constraint) {
 }
 
 function solveCollisionConstraint_PBD(constraint) {
-  // Коллизионное ограничение: C(p) = (p - qs) · n = 0
-  // Градиент: ∇C = n
   const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
   
   const px = p1.positionPredicted.x;
   const py = p1.positionPredicted.y;
   
-  // C = (p - qs) · n = (px - qs_x)*nx + (py - qs_y)*ny
   const C = (px - qs_x) * nx + (py - qs_y) * ny;
   
-  // Обрабатываем только если нарушено (C < 0)
   if (C < 0) {
     const w1 = p1.isFixed ? 0 : 1 / p1.mass;
     
     if (w1 < 1e-6) return;
     
-    // s = C / (∇C · ∇C * w1) = C / (1 * w1)
     const s = C / w1;
     
-    // Коррекция: p1 -= s * w1 * stiffness * ∇C = -C * stiffness * n
     const correction = -s * w1 * settings.constraintStiffness;
     p1.positionPredicted.x += correction * nx;
     p1.positionPredicted.y += correction * ny;
@@ -441,15 +370,12 @@ function solveCollisionConstraint_PBD(constraint) {
 // =================================
 
 function solveConstraints_XPBD(allConstraints, iterations) {
-  // Обнуляем ВСЕ лямбды в начале solve (как в XPBD алгоритме)
   for (const constraint of allConstraints) {
     if (constraint.type === 'distance' || constraint.type === 'collision') {
       constraint.lambda = 0;
     }
   }
   
-  // Метод XPBD (Extended Position Based Dynamics) решает ВСЕ ограничения
-  // Использует множители Лагранжа для физически корректного контроля жесткости
   for (let i = 0; i < iterations; i++) {
     for (const constraint of allConstraints) {
       if (constraint.type === 'distance') {
@@ -462,8 +388,6 @@ function solveConstraints_XPBD(allConstraints, iterations) {
 }
 
 function solveDistanceConstraint_XPBD(constraint) {
-  // XPBD метод для ограничения расстояния
-  // Инициализируем lambda если его нет
   if (constraint.lambda === undefined) {
     constraint.lambda = 0;
   }
@@ -475,36 +399,28 @@ function solveDistanceConstraint_XPBD(constraint) {
   
   if (deltaLength < 1e-6) return;
   
-  // Нормализуем градиент
   const gradP1_x = -delta.x / deltaLength;
   const gradP1_y = -delta.y / deltaLength;
   const gradP2_x = delta.x / deltaLength;
   const gradP2_y = delta.y / deltaLength;
   
-  // Вычисляем значение ограничения (ошибка)
   const C = deltaLength - restLength;
   
-  // Обратная жесткость (compliance)
   const k = settings.constraintStiffness;
   const compliance = k > 0 ? 1.0 / k : 0;
   
-  // Вычисляем весовые коэффициенты
   const w1 = p1.isFixed ? 0 : 1 / p1.mass;
   const w2 = p2.isFixed ? 0 : 1 / p2.mass;
   
-  // Вычисляем градиент · градиент
-  const gradGrad = 1.0 * (w1 + w2); // Так как |grad| = 1
+  const gradGrad = 1.0 * (w1 + w2);
   
   if (w1 + w2 < 1e-6) return;
   
-  // Вычисляем изменение множителя Лагранжа
   const denom = gradGrad + compliance;
   const deltaLambda = -(C + compliance * constraint.lambda) / denom;
   
-  // Обновляем множитель Лагранжа
   constraint.lambda += deltaLambda;
   
-  // Применяем коррекцию позиций
   if (p1.isFixed === false) {
     const correctionMag = deltaLambda * w1;
     p1.positionPredicted.x += correctionMag * gradP1_x;
@@ -519,8 +435,6 @@ function solveDistanceConstraint_XPBD(constraint) {
 }
 
 function solveCollisionConstraint_XPBD(constraint) {
-  // XPBD метод для коллизионного ограничения
-  // Инициализируем lambda если его нет
   if (constraint.lambda === undefined) {
     constraint.lambda = 0;
   }
@@ -530,31 +444,23 @@ function solveCollisionConstraint_XPBD(constraint) {
   const px = p1.positionPredicted.x;
   const py = p1.positionPredicted.y;
   
-  // C = (p - qs) · n = (px - qs_x)*nx + (py - qs_y)*ny
   const C = (px - qs_x) * nx + (py - qs_y) * ny;
   
-  // Обрабатываем только если нарушено (C < 0)
   if (C < 0) {
-    // Обратная жесткость (compliance)
     const k = settings.constraintStiffness;
     const compliance = k > 0 ? 1.0 / k : 0;
     
-    // Вычисляем весовой коэффициент
     const w1 = p1.isFixed ? 0 : 1 / p1.mass;
     
     if (w1 < 1e-6) return;
     
-    // Вычисляем градиент · градиент (|n| = 1)
     const gradGrad = 1.0 * w1;
     
-    // Вычисляем изменение множителя Лагранжа
     const denom = gradGrad + compliance;
     const deltaLambda = -(C + compliance * constraint.lambda) / denom;
     
-    // Обновляем множитель Лагранжа
     constraint.lambda += deltaLambda;
     
-    // Применяем коррекцию позиции
     const correctionMag = deltaLambda * w1;
     p1.positionPredicted.x += correctionMag * nx;
     p1.positionPredicted.y += correctionMag * ny;
@@ -570,21 +476,13 @@ function drawWalls() {
   stroke(settings.wallStrokeColor.r, settings.wallStrokeColor.g, settings.wallStrokeColor.b);
   strokeWeight(settings.wallStrokeWeight);
   
-  // Bottom wall
   line(0, settings.sceneHeight, settings.sceneWidth, settings.sceneHeight);
-  
-  // Top wall
   line(0, 0, settings.sceneWidth, 0);
-  
-  // Left wall
   line(0, 0, 0, settings.sceneHeight);
-  
-  // Right wall
   line(settings.sceneWidth, 0, settings.sceneWidth, settings.sceneHeight);
 }
 
 function drawScene() {
-  // Draw constraints
   stroke(settings.constraintStrokeColor.r, settings.constraintStrokeColor.g, 
          settings.constraintStrokeColor.b, settings.constraintStrokeColor.a);
   strokeWeight(settings.constraintStrokeWeight);
@@ -595,13 +493,11 @@ function drawScene() {
     );
   }
 
-  // Draw points
   noStroke();
   for (const point of points) {
     if (point === draggedPoint) {
-      fill(255, 200, 0); // Yellow for dragged point
+      fill(255, 200, 0);
     } else if (point.color) {
-      // Используем цвет точки, если он задан (для закрепленных точек)
       fill(point.color.r, point.color.g, point.color.b);
     } else {
       fill(settings.pointColor.r, settings.pointColor.g, settings.pointColor.b);
@@ -616,7 +512,6 @@ function drawScene() {
 // =================================
 
 function mousePressed() {
-  // Ищем ближайшую точку к позиции мышки среди всех фигур
   let closestDistSq = Infinity;
   let closestPoint = null;
   let closestFigure = null;
@@ -643,13 +538,12 @@ function mousePressed() {
 }
 
 function handlePointDrag() {
-  // Перемещаем точку следом за мышкой
   if (!draggedPoint) return;
   
   draggedPoint.position.x = mouseX;
   draggedPoint.position.y = mouseY;
   draggedPoint.positionPredicted.set(draggedPoint.position);
-  draggedPoint.velocity.mult(0);  // Зануляем скорость захватанной точки
+  draggedPoint.velocity.mult(0);
 }
 
 function mouseReleased() {
@@ -674,7 +568,6 @@ function changeSolverMethod(method) {
 function toggleGravity() {
   gravityEnabled = !gravityEnabled;
   
-  // Зануляем скорость и обновляем ускорение при переключении гравитации
   for (const figure of figures) {
     for (const point of figure.points) {
       point.velocity.mult(0);
@@ -693,12 +586,10 @@ function toggleGravity() {
 }
 
 function resetSimulation() {
-  // Reinitialize the scene
   initScene();
   draggedPoint = null;
   draggedFigure = null;
   
-  // Применяем состояние гравитации к новым точкам
   if (!gravityEnabled) {
     for (const figure of figures) {
       for (const point of figure.points) {
@@ -765,7 +656,6 @@ function updateFigureCenter(figure) {
   }
   figure.center = createVector(centerX / figure.points.length, centerY / figure.points.length);
 
-  // Update normals for convex points
   if (figure.convex_points) {
     for (const point of figure.convex_points) {
       point.normal = p5.Vector.sub(point.position, figure.center).normalize();
@@ -774,7 +664,6 @@ function updateFigureCenter(figure) {
 }
 
 function detectObjectCollisions() {
-    // Проверяем столкновения между всеми парами фигур
     for (let i = 0; i < figures.length; i++) {
         for (let j = i + 1; j < figures.length; j++) {
             const fig1 = figures[i];
@@ -782,18 +671,13 @@ function detectObjectCollisions() {
 
             if (!fig1.convex_points || !fig2.convex_points) continue;
 
-            // Обновляем центры обеих фигур перед проверкой
             updateFigureCenter(fig1);
             updateFigureCenter(fig2);
 
             const pointRadius1 = fig1.pointRadius;
             const pointRadius2 = fig2.pointRadius;
 
-            // ============================================================
-            // Проверка столкновения fig1 -> fig2 (точки fig1 внутри fig2)
-            // ============================================================
             for (const p1 of fig1.convex_points) {
-                // Найти ближайшую точку в fig2.convex_points к точке p1
                 let minDist = Infinity;
                 let closestIdx = 0;
                 for (let idx = 0; idx < fig2.convex_points.length; idx++) {
@@ -805,10 +689,8 @@ function detectObjectCollisions() {
                     }
                 }
                 
-                // Проверяем два ребра с ближайшей точкой: (closestIdx-1, closestIdx) и (closestIdx, closestIdx+1)
                 const k = closestIdx;
                 
-                // Ребро 1: (k-1, k)
                 {
                     const prevIdx = (k - 1 + fig2.convex_points.length) % fig2.convex_points.length;
                     const p2 = fig2.convex_points[prevIdx];
@@ -823,7 +705,6 @@ function detectObjectCollisions() {
                     }
                 }
                 
-                // Ребро 2: (k, k+1)
                 {
                     const p2 = fig2.convex_points[k];
                     const p3 = fig2.convex_points[(k + 1) % fig2.convex_points.length];
@@ -838,11 +719,7 @@ function detectObjectCollisions() {
                 }
             }
 
-            // ============================================================
-            // Проверка столкновения fig2 -> fig1 (точки fig2 внутри fig1)
-            // ============================================================
             for (const p2 of fig2.convex_points) {
-                // Найти ближайшую точку в fig1.convex_points к точке p2
                 let minDist = Infinity;
                 let closestIdx = 0;
                 for (let idx = 0; idx < fig1.convex_points.length; idx++) {
@@ -854,10 +731,8 @@ function detectObjectCollisions() {
                     }
                 }
                 
-                // Проверяем два ребра с ближайшей точкой: (closestIdx-1, closestIdx) и (closestIdx, closestIdx+1)
                 const k = closestIdx;
                 
-                // Ребро 1: (k-1, k)
                 {
                     const prevIdx = (k - 1 + fig1.convex_points.length) % fig1.convex_points.length;
                     const p1 = fig1.convex_points[prevIdx];
@@ -872,7 +747,6 @@ function detectObjectCollisions() {
                     }
                 }
                 
-                // Ребро 2: (k, k+1)
                 {
                     const p1 = fig1.convex_points[k];
                     const p3 = fig1.convex_points[(k + 1) % fig1.convex_points.length];
@@ -894,75 +768,46 @@ function detectObjectCollisions() {
 // Cloth Self-Collision Resolution
 // =================================
 function resolveClothSelfCollisions() {
-  /**
-   * Разрешение самоколизий ткани (столкновения между точками одной фигуры)
-   * 
-   * ПАРАМЕТРЫ:
-   * R = figure.pointRadius = радиус частицы
-   * S = settings.solverIterations = количество подшагов
-   * dt = settings.timeStep = размер временного шага
-   * 
-   * ФОРМУЛЫ:
-   * 1. V_max = (R * S) / dt
-   * 2. D_collision = min(2 * R, RestDistance)
-   * 3. Если currentDistance < D_collision:
-   *    - correction = (D_collision - currentDistance) / 2
-   *    - direction = (pos2 - pos1) / currentDistance
-   *    - pos1 -= direction * correction
-   *    - pos2 += direction * correction
-   */
-  
   const S = settings.solverIterations;
   const dt = settings.timeStep;
-  const d = 0.8; // Коэффициент демпфирования (0..1)
+  const d = 0.8;
   
-  // Обраватываем каждую фигуру отдельно
   for (const figure of figures) {
     if (!figure.points || figure.points.length < 2) continue;
     
     const pointsInFigure = figure.points;
-    const R = figure.pointRadius;  // Используем pointRadius из фигуры
+    const R = figure.pointRadius;
     
-    // Проверяем все пары точек в фигуре
     for (let i = 0; i < pointsInFigure.length; i++) {
       for (let j = i + 1; j < pointsInFigure.length; j++) {
         const p1 = pointsInFigure[i];
         const p2 = pointsInFigure[j];
         
-        // Пропускаем закреплённые точки
         if (p1.isFixed && p2.isFixed) continue;
         
-        // Текущее расстояние между точками
         const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
         const currentDistance = delta.mag();
         
-        // Избегаем деления на 0
         if (currentDistance < 0.001) continue;
         
-        // Ищем ограничение distance между этой парой точек
-        let restDistance = currentDistance; // По умолчанию - текущее расстояние
+        let restDistance = currentDistance;
         
         for (const constraint of figure.constraints) {
           if (constraint.type === 'distance') {
-            // Проверяем, это ограничение для нашей пары?
             if ((constraint.p1 === p1 && constraint.p2 === p2) ||
                 (constraint.p1 === p2 && constraint.p2 === p1)) {
-              restDistance = constraint.distance; // Используем restLength из ограничения
+              restDistance = constraint.distance;
               break;
             }
           }
         }
         
-        // ФОРМУЛА 2: Дистанция столкновения
         const D_collision = Math.min(2 * R, restDistance);
         
-        // Проверяем условие столкновения
         if (currentDistance < D_collision) {
-          // ФОРМУЛА 3: Разрешение столкновения
           const correction = (D_collision - currentDistance) / 2;
-          const direction = delta.copy().normalize(); // (pos2 - pos1) / currentDistance
+          const direction = delta.copy().normalize();
           
-          // Применяем коррекцию позиций
           if (!p1.isFixed) {
             p1.positionPredicted.x -= direction.x * correction;
             p1.positionPredicted.y -= direction.y * correction;
