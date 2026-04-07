@@ -104,7 +104,7 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
       
       // Определяем, является ли точка выпуклой (граничной)
       const isConvex = row === 0 || row === numRows - 1 || col === 0 || col === numCols - 1;
-      
+
       // Вычисляем нормаль для выпуклых точек (направление от центра к точке)
       let normal = createVector(0, 0);
       if (isConvex) {

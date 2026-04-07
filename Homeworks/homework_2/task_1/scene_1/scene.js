@@ -7,7 +7,7 @@ function initScene() {
   figures = [];
 
   // Создаём один круг в центре
-  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 - 100);
+  const center = createVector(settings.sceneWidth / 2 + 200, settings.sceneHeight / 2 - 100);
   const radius = 80;
   const numPoints = 15;
 

@@ -94,7 +94,10 @@ function simulate() {
   
   // 4. Обнаруживаем коллизии и добавляем их как ограничения
   detectAndAddCollisions();
-  detectObjectCollisions();
+  //detectObjectCollisions();
+  
+  // 4.5. Разрешаем самоколизии ткани
+  //resolveClothSelfCollisions();
   
   // 5. Разрешаем ВСЕ ограничения (дистанционные + коллизионные)
   const allConstraints = [...constraints, ...frameCollisionConstraints];
@@ -883,6 +886,94 @@ function detectObjectCollisions() {
             }
         }
     }
+}
+
+// =================================
+// Cloth Self-Collision Resolution
+// =================================
+function resolveClothSelfCollisions() {
+  /**
+   * Разрешение самоколизий ткани (столкновения между точками одной фигуры)
+   * 
+   * ПАРАМЕТРЫ:
+   * R = settings.pointRadius = радиус частицы
+   * S = settings.solverIterations = количество подшагов
+   * dt = settings.timeStep = размер временного шага
+   * 
+   * ФОРМУЛЫ:
+   * 1. V_max = (R * S) / dt
+   * 2. D_collision = min(2 * R, RestDistance)
+   * 3. Если currentDistance < D_collision:
+   *    - correction = (D_collision - currentDistance) / 2
+   *    - direction = (pos2 - pos1) / currentDistance
+   *    - pos1 -= direction * correction
+   *    - pos2 += direction * correction
+   */
+  
+  const R = settings.pointRadius;
+  const S = settings.solverIterations;
+  const dt = settings.timeStep;
+  const d = 0.8; // Коэффициент демпфирования (0..1)
+  
+  // Обраватываем каждую фигуру отдельно
+  for (const figure of figures) {
+    if (!figure.points || figure.points.length < 2) continue;
+    
+    const pointsInFigure = figure.points;
+    
+    // Проверяем все пары точек в фигуре
+    for (let i = 0; i < pointsInFigure.length; i++) {
+      for (let j = i + 1; j < pointsInFigure.length; j++) {
+        const p1 = pointsInFigure[i];
+        const p2 = pointsInFigure[j];
+        
+        // Пропускаем закреплённые точки
+        if (p1.isFixed && p2.isFixed) continue;
+        
+        // Текущее расстояние между точками
+        const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
+        const currentDistance = delta.mag();
+        
+        // Избегаем деления на 0
+        if (currentDistance < 0.001) continue;
+        
+        // Ищем ограничение distance между этой парой точек
+        let restDistance = currentDistance; // По умолчанию - текущее расстояние
+        
+        for (const constraint of figure.constraints) {
+          if (constraint.type === 'distance') {
+            // Проверяем, это ограничение для нашей пары?
+            if ((constraint.p1 === p1 && constraint.p2 === p2) ||
+                (constraint.p1 === p2 && constraint.p2 === p1)) {
+              restDistance = constraint.distance; // Используем restLength из ограничения
+              break;
+            }
+          }
+        }
+        
+        // ФОРМУЛА 2: Дистанция столкновения
+        const D_collision = Math.min(2 * R, restDistance);
+        
+        // Проверяем условие столкновения
+        if (currentDistance < D_collision) {
+          // ФОРМУЛА 3: Разрешение столкновения
+          const correction = (D_collision - currentDistance) / 2;
+          const direction = delta.copy().normalize(); // (pos2 - pos1) / currentDistance
+          
+          // Применяем коррекцию позиций
+          if (!p1.isFixed) {
+            p1.positionPredicted.x -= direction.x * correction;
+            p1.positionPredicted.y -= direction.y * correction;
+          }
+          
+          if (!p2.isFixed) {
+            p2.positionPredicted.x += direction.x * correction;
+            p2.positionPredicted.y += direction.y * correction;
+          }
+        }
+      }
+    }
+  }
 }
 
 
