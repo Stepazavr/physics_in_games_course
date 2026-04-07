@@ -94,7 +94,7 @@ function simulate() {
   
   // 4. Обнаруживаем коллизии и добавляем их как ограничения
   detectAndAddCollisions();
-  //detectObjectCollisions();
+  detectObjectCollisions();
   
   // 4.5. Разрешаем самоколизии ткани
   //resolveClothSelfCollisions();
