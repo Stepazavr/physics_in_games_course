@@ -88,9 +88,7 @@ function draw() {
 // Simulation Core
 // =================================
 function simulate() {
-  // 1. Очищаем коллизионные ограничения этого кадра
-  frameCollisionConstraints = [];
-  
+
   // 2. Интегрируем скорость и позицию (БЕЗ обработки коллизий)
   integrateVelocityAndPosition(settings.timeStep);
   
@@ -136,7 +134,7 @@ function integrateVelocityAndPosition(dt) {
     // 1. v_{k+1} = v_k + a_k * dt
     point.velocity.add(p5.Vector.mult(point.acceleration, dt));
     
-    // 2. x_{predicted} = x_k + v * dt
+    // 2. x_{predicted} = x_k + v_{k+1} * dt
     point.positionPredicted.set(point.position);
     point.positionPredicted.add(p5.Vector.mult(point.velocity, dt));
   }
@@ -159,6 +157,11 @@ function updateAfterConstraints(dt) {
 function detectAndAddCollisions() {
   // Обнаруживаем коллизии со стенками и добавляем их как ограничения
   // ВАЖНО: проверяем именно positionPredicted, так как ограничения решаются по ней!
+
+    // 1. Очищаем коллизионные ограничения этого кадра
+  frameCollisionConstraints = [];
+
+
   for (const point of points) {
     if (point.isFixed) continue;
     
@@ -634,16 +637,6 @@ window.addEventListener('load', () => {
       const value = parseFloat(e.target.value);
       settings.frictionCoefficient = value;
       frictionValue.textContent = value.toFixed(2);
-    });
-  }
-  
-  const flexibilityInput = document.getElementById('flexibilityInput');
-  const flexibilityValue = document.getElementById('flexibilityValue');
-  if (flexibilityInput) {
-    flexibilityInput.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      settings.flexibility = value;
-      flexibilityValue.textContent = value.toFixed(2);
     });
   }
 });
