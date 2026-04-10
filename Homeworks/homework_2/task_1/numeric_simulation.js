@@ -152,34 +152,44 @@ function detectAndAddCollisions() {
     
     const padding = 0;
     
+    // X-axis collisions
     if (point.positionPredicted.x <= padding) {
       const nx = 1;
       const ny = 0;
+      const nz = 0;
       const qs_x = 0;
       const qs_y = point.positionPredicted.y;
-      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+      const qs_z = point.positionPredicted.z;
+      createAndAddCollisionConstraint3D(point, nx, ny, nz, qs_x, qs_y, qs_z);
     }
     else if (point.positionPredicted.x >= settings.sceneWidth - padding) {
       const nx = -1;
       const ny = 0;
+      const nz = 0;
       const qs_x = settings.sceneWidth;
       const qs_y = point.positionPredicted.y;
-      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+      const qs_z = point.positionPredicted.z;
+      createAndAddCollisionConstraint3D(point, nx, ny, nz, qs_x, qs_y, qs_z);
     }
     
+    // Y-axis collisions
     if (point.positionPredicted.y <= padding) {
       const nx = 0;
       const ny = 1;
+      const nz = 0;
       const qs_x = point.positionPredicted.x;
       const qs_y = 0;
-      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+      const qs_z = point.positionPredicted.z;
+      createAndAddCollisionConstraint3D(point, nx, ny, nz, qs_x, qs_y, qs_z);
     }
     else if (point.positionPredicted.y >= settings.sceneHeight - padding) {
       const nx = 0;
       const ny = -1;
+      const nz = 0;
       const qs_x = point.positionPredicted.x;
       const qs_y = settings.sceneHeight;
-      createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y);
+      const qs_z = point.positionPredicted.z;
+      createAndAddCollisionConstraint3D(point, nx, ny, nz, qs_x, qs_y, qs_z);
     }
   }
 }
@@ -202,12 +212,34 @@ function createAndAddCollisionConstraint(point, nx, ny, qs_x, qs_y) {
   }
 }
 
+function createAndAddCollisionConstraint3D(point, nx, ny, nz, qs_x, qs_y, qs_z) {
+  const C = (point.positionPredicted.x - qs_x) * nx + (point.positionPredicted.y - qs_y) * ny + (point.positionPredicted.z - qs_z) * nz;
+  
+  if (C < 0) {
+    frameCollisionConstraints.push({
+      type: 'collision',
+      p1: point,
+      normalX: nx,
+      normalY: ny,
+      normalZ: nz,
+      surface_x: qs_x,
+      surface_y: qs_y,
+      surface_z: qs_z,
+      gradP1_x: nx,
+      gradP1_y: ny,
+      gradP1_z: nz,
+      lambda: 0,
+    });
+  }
+}
+
 function constrainAllPointsToWalls() {
   for (const point of points) {
     if (point.position.x < 0) point.position.x = 0;
     if (point.position.x > settings.sceneWidth) point.position.x = settings.sceneWidth;
     if (point.position.y < 0) point.position.y = 0;
     if (point.position.y > settings.sceneHeight) point.position.y = settings.sceneHeight;
+    // Z axis is unbounded for 3D objects
   }
 }
 
@@ -218,31 +250,38 @@ function applyCollisionResponseToVelocities() {
     const point = constraint.p1;
     const nx = constraint.normalX;
     const ny = constraint.normalY;
+    const nz = constraint.normalZ || 0;
     const e = settings.flexibility;
     const mu = settings.frictionCoefficient;
     
     const vx = point.velocity.x;
     const vy = point.velocity.y;
+    const vz = point.velocity.z || 0;
     
-    const vDotN = vx * nx + vy * ny;
+    const vDotN = vx * nx + vy * ny + vz * nz;
     
     let newVx = vx;
     let newVy = vy;
+    let newVz = vz;
     
     if (vDotN < 0) {
       const factor = (1 + e) * vDotN;
       newVx = vx - factor * nx;
       newVy = vy - factor * ny;
+      newVz = vz - factor * nz;
     }
     
     const tangent_x = newVx - vDotN * nx;
     const tangent_y = newVy - vDotN * ny;
+    const tangent_z = newVz - vDotN * nz;
     
     const tangent_friction_x = tangent_x * (1 - mu);
     const tangent_friction_y = tangent_y * (1 - mu);
+    const tangent_friction_z = tangent_z * (1 - mu);
     
     point.velocity.x = vDotN * nx + tangent_friction_x;
     point.velocity.y = vDotN * ny + tangent_friction_y;
+    point.velocity.z = vDotN * nz + tangent_friction_z;
   }
 }
 
@@ -265,7 +304,7 @@ function solveDistanceConstraint_Hitman(constraint) {
   
   let deltaLength = settings.useApproximateRoot
     ? approximateDistance(delta)
-    : Math.sqrt(delta.x * delta.x + delta.y * delta.y);
+    : Math.sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
   
   if (deltaLength < 1e-6) return;
   
@@ -288,17 +327,19 @@ function solveDistanceConstraint_Hitman(constraint) {
 }
 
 function solveCollisionConstraint_Hitman(constraint) {
-  const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
+  const { p1, normalX: nx, normalY: ny, normalZ: nz = 0, surface_x: qs_x, surface_y: qs_y, surface_z: qs_z = 0 } = constraint;
   
   const px = p1.positionPredicted.x;
   const py = p1.positionPredicted.y;
+  const pz = p1.positionPredicted.z || 0;
   
-  const C = (px - qs_x) * nx + (py - qs_y) * ny;
+  const C = (px - qs_x) * nx + (py - qs_y) * ny + (pz - qs_z) * nz;
   
   if (C < 0) {
     const correction = -C * settings.constraintStiffness;
     p1.positionPredicted.x += correction * nx;
     p1.positionPredicted.y += correction * ny;
+    p1.positionPredicted.z += correction * nz;
   }
 }
 
@@ -348,12 +389,13 @@ function solveDistanceConstraint_PBD(constraint) {
 }
 
 function solveCollisionConstraint_PBD(constraint) {
-  const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
+  const { p1, normalX: nx, normalY: ny, normalZ: nz = 0, surface_x: qs_x, surface_y: qs_y, surface_z: qs_z = 0 } = constraint;
   
   const px = p1.positionPredicted.x;
   const py = p1.positionPredicted.y;
+  const pz = p1.positionPredicted.z || 0;
   
-  const C = (px - qs_x) * nx + (py - qs_y) * ny;
+  const C = (px - qs_x) * nx + (py - qs_y) * ny + (pz - qs_z) * nz;
   
   if (C < 0) {
     const w1 = p1.isFixed ? 0 : 1 / p1.mass;
@@ -365,6 +407,7 @@ function solveCollisionConstraint_PBD(constraint) {
     const correction = -s * w1 * settings.constraintStiffness;
     p1.positionPredicted.x += correction * nx;
     p1.positionPredicted.y += correction * ny;
+    p1.positionPredicted.z += correction * nz;
   }
 }
 
@@ -404,8 +447,10 @@ function solveDistanceConstraint_XPBD(constraint) {
   
   const gradP1_x = -delta.x / deltaLength;
   const gradP1_y = -delta.y / deltaLength;
+  const gradP1_z = -delta.z / deltaLength;
   const gradP2_x = delta.x / deltaLength;
   const gradP2_y = delta.y / deltaLength;
+  const gradP2_z = delta.z / deltaLength;
   
   const C = deltaLength - restLength;
   
@@ -428,12 +473,14 @@ function solveDistanceConstraint_XPBD(constraint) {
     const correctionMag = deltaLambda * w1;
     p1.positionPredicted.x += correctionMag * gradP1_x;
     p1.positionPredicted.y += correctionMag * gradP1_y;
+    p1.positionPredicted.z += correctionMag * gradP1_z;
   }
   
   if (p2.isFixed === false) {
     const correctionMag = deltaLambda * w2;
     p2.positionPredicted.x += correctionMag * gradP2_x;
     p2.positionPredicted.y += correctionMag * gradP2_y;
+    p2.positionPredicted.z += correctionMag * gradP2_z;
   }
 }
 
@@ -442,12 +489,13 @@ function solveCollisionConstraint_XPBD(constraint) {
     constraint.lambda = 0;
   }
   
-  const { p1, normalX: nx, normalY: ny, surface_x: qs_x, surface_y: qs_y } = constraint;
+  const { p1, normalX: nx, normalY: ny, normalZ: nz = 0, surface_x: qs_x, surface_y: qs_y, surface_z: qs_z = 0 } = constraint;
   
   const px = p1.positionPredicted.x;
   const py = p1.positionPredicted.y;
+  const pz = p1.positionPredicted.z || 0;
   
-  const C = (px - qs_x) * nx + (py - qs_y) * ny;
+  const C = (px - qs_x) * nx + (py - qs_y) * ny + (pz - qs_z) * nz;
   
   if (C < 0) {
     const k = settings.constraintStiffness;
@@ -467,6 +515,7 @@ function solveCollisionConstraint_XPBD(constraint) {
     const correctionMag = deltaLambda * w1;
     p1.positionPredicted.x += correctionMag * nx;
     p1.positionPredicted.y += correctionMag * ny;
+    p1.positionPredicted.z += correctionMag * nz;
   }
 }
 
@@ -545,6 +594,8 @@ function handlePointDrag() {
   
   draggedPoint.position.x = mouseX;
   draggedPoint.position.y = mouseY;
+  //draggedPoint.position.z = mouseY;
+  // Keep Z coordinate unchanged when dragging in 2D interface
   draggedPoint.positionPredicted.set(draggedPoint.position);
   draggedPoint.velocity.mult(0);
 }
