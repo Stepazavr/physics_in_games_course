@@ -5,67 +5,78 @@
 let currentSceneNumber = 1;
 
 // =================================
-// Scene 1 - Система висит на нескольких точках
+// Scene 1 - Ткань в плоскости XZ, свободно падает
 // =================================
 function initScene_1() {
   figures = [];
 
-  const gridTopLeft = createVector(250, 0, 0);
-  const gridWidth = 300;
-  const gridHeight = 300;
-  const gridRows = 30;
-  const gridCols = 30;
+  // Сетка в плоскости XZ с наклоном по Y
+  const centerPos = createVector(400, 200, 300);
+  const gridWidth = 400;   // размер по X
+  const gridDepth = 400;   // размер по Z
+  const gridRows = 30;     // количество точек по Z
+  const gridCols = 30;     // количество точек по X
+  const y1 = 100;          // Y верхней строки
+  const y2 = 400;          // Y нижней строки (как гипотенуза)
   
-  const grid = createGridFigure('grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols);
+  const grid = createGridFigure_XZ('grid_1', centerPos, gridWidth, gridDepth, gridRows, gridCols, y1, y2);
   
-  // Прикрепить ткань в центре верхней строки
+  // Подвесить ткань за одну центральную точку
+  const midRow = Math.floor(gridRows / 2);
   const midCol = Math.floor(gridCols / 2);
-  grid.grid[0][midCol].isFixed = true;
-  grid.grid[0][midCol].color = { r: 255, g: 0, b: 0 };
+  grid.grid[midRow][midCol].isFixed = true;
+  grid.grid[midRow][midCol].color = { r: 255, g: 0, b: 0 };
   
   figures.push(grid);
 }
 
 // =================================
-// Scene 2 - Система падает на пол
+// Scene 2 - Ткань в плоскости XZ, натянута сверху
 // =================================
 function initScene_2() {
   figures = [];
 
-  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 + 200, 0);
-  const radius = 80;
-  const numPoints = 15;
-
-  const circle = createCircleFigure('circle_1', center, radius, numPoints);
-
-  const gridTopLeft = createVector(250, 0, 0);
-  const gridWidth = 300;
-  const gridHeight = 300;
-  const gridRows = 30;
-  const gridCols = 30;
-
-  const grid = createGridFigure('hanging_grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols, gridCols);
+  // Сетка в плоскости XZ, вытянутая по Y от y1 до y2
+  const centerPos = createVector(400, 200, 300);
+  const gridWidth = 400;   // размер по X
+  const gridDepth = 400;   // размер по Z
+  const gridRows = 30;     // количество точек по Z
+  const gridCols = 30;     // количество точек по X
+  const y1 = 0;            // Y верхней строки (максимально поднята)
+  const y2 = 400;          // Y нижней строки
+  
+  const grid = createGridFigure_XZ('grid_2', centerPos, gridWidth, gridDepth, gridRows, gridCols, y1, y2);
+  
+  // Зафиксировать только верхнюю строку (y1)
+  for (let col = 0; col < gridCols; col++) {
+    grid.grid[0][col].isFixed = true;
+    grid.grid[0][col].color = { r: 255, g: 0, b: 0 };
+  }
+  
   figures.push(grid);
 }
 
 // =================================
-// Scene 3 - Система с несовместными ограничениями
+// Scene 3 - Ткань в плоскости XZ с растянутой верхней строкой
 // =================================
 function initScene_3() {
   figures = [];
 
-  const gridTopLeft = createVector(150, 50, 0);
-  const gridWidth = 300;
-  const gridHeight = 350;
-  const gridRows = 30;
-  const gridCols = 30;
-
-  const grid = createGridFigure('stretched_grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols, 0);
+  // Сетка в плоскости XZ, вытянутая по Y от y1 до y2
+  const centerPos = createVector(400, 200, 300);
+  const gridWidth = 400;   // размер по X
+  const gridDepth = 400;   // размер по Z
+  const gridRows = 30;     // количество точек по Z
+  const gridCols = 30;     // количество точек по X
+  const y1 = 50;           // Y верхней строки
+  const y2 = 400;          // Y нижней строки
   
+  const grid = createGridFigure_XZ('grid_3', centerPos, gridWidth, gridDepth, gridRows, gridCols, y1, y2);
+  
+  // Раздвинуть и зафиксировать верхнюю строку
   if (grid.grid && grid.grid[0]) {
-    const stretchedWidth = 700;
-    const startX = (settings.sceneWidth - stretchedWidth) / 2;
-    const topY = grid.grid[0][0].position.y;
+    const stretchedWidth = 800;  // растянутая ширина
+    const startX = (800 - stretchedWidth) / 2;  // 800 - ширина canvas
     
     for (let col = 0; col < gridCols; col++) {
       const newX = startX + (col / (gridCols - 1)) * stretchedWidth;
@@ -75,7 +86,7 @@ function initScene_3() {
       grid.grid[0][col].color = { r: 255, g: 0, b: 0 };
     }
   }
-
+  
   figures.push(grid);
 }
 
