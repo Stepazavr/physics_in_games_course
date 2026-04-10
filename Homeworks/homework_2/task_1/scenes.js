@@ -17,6 +17,12 @@ function initScene_1() {
   const gridCols = 20;
   
   const grid = createGridFigure('grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols);
+  
+  // Прикрепить ткань в центре верхней строки
+  const midCol = Math.floor(gridCols / 2);
+  grid.grid[0][midCol].isFixed = true;
+  grid.grid[0][midCol].color = { r: 255, g: 0, b: 0 };
+  
   figures.push(grid);
 }
 
