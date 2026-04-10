@@ -7,7 +7,7 @@ const settings = {
   
   gravity: { x: 0, y: 980 },
   timeStep: 0.01,
-  solverIterations: 3,
+  solverIterations: 10,
   constraintStiffness: 1.0,
   flexibility: 1.0,
   frictionCoefficient: 0.5,
