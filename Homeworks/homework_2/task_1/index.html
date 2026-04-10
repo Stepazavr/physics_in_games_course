@@ -3,112 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Task 1 - Выбор сцены</title>
+  <title>Task 1 - Симуляция ткани</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fd;
+      --surface: #ffffff;
+      --text: #14213d;
+      --muted: #576284;
+      --accent: #0a9396;
+      --accent-hover: #087f81;
+      --border: #dce4f5;
+      --shadow: 0 12px 28px rgba(20, 33, 61, 0.08);
     }
 
-    .container {
-      max-width: 900px;
-      width: 100%;
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: radial-gradient(circle at top right, #edf7f8 0%, #f5f8ff 45%, #eff3ff 100%);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
       padding: 40px 20px;
     }
 
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
     h1 {
-      text-align: center;
-      color: white;
-      margin-bottom: 50px;
-      font-size: 2.5em;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      margin: 0 0 8px;
+      font-size: 1.8rem;
+      line-height: 1.2;
     }
 
-    .scenes {
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 30px;
-      justify-content: center;
+      gap: 12px;
     }
 
-    .scene-card {
-      background: white;
-      border-radius: 12px;
-      padding: 30px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .scene-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
-    }
-
-    .scene-card h2 {
-      color: #667eea;
-      margin: 0 0 15px 0;
-      font-size: 1.5em;
-    }
-
-    .scene-card p {
-      color: #666;
-      line-height: 1.6;
-      margin: 0 0 20px 0;
-    }
-
-    .scene-card a {
-      display: inline-block;
-      padding: 12px 30px;
-      background-color: #667eea;
-      color: white;
+    a {
+      display: block;
       text-decoration: none;
-      border-radius: 6px;
-      transition: background-color 0.3s ease;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--accent);
+      background: #f7feff;
       font-weight: 600;
+      transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
     }
 
-    .scene-card a:hover {
-      background-color: #764ba2;
+    a:hover {
+      color: #ffffff;
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .back {
+      margin-top: 18px;
+      font-weight: 500;
+      display: inline-block;
+      color: var(--muted);
+    }
+
+    .back:hover {
+      color: var(--text);
+      background: transparent;
+      transform: none;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Task 1 - Выбор сцены</h1>
-    
-    <div class="scenes">
-      <div class="scene-card">
-        <h2>Сцена 1</h2>
-        <p>Система висит на нескольких точках</p>
-        <a href="./scene_1/index.html">Запустить</a>
-      </div>
+  <main>
+    <section class="card">
+      <h1>Task 1 - Симуляция ткани</h1>
+      <p>Выберите размерность симуляции.</p>
 
-      <div class="scene-card">
-        <h2>Сцена 2</h2>
-        <p>Система падает на пол</p>
-        <a href="./scene_2/index.html">Запустить</a>
-      </div>
+      <ul>
+        <li><a href="./2D/">2D Симуляция</a></li>
+        <li><a href="./3D/">3D Симуляция</a></li>
+      </ul>
 
-      <div class="scene-card">
-        <h2>Сцена 3</h2>
-        <p>Система с несовместными ограничениями</p>
-        <a href="./scene_3/index.html">Запустить</a>
-      </div>
-
-      <div class="scene-card">
-        <h2>Сцена 4</h2>
-        <p>Два шара</p>
-        <a href="./scene_4/index.html">Запустить</a>
-      </div>
-    </div>
-  </div>
+      <a class="back" href="../">Назад к Homework 2</a>
+    </section>
+  </main>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scene 2 - Симуляция</title>
+  <title>Task 1 - Симуляция 2D</title>
   <style>
     html, body {
       margin: 0;
@@ -27,6 +27,8 @@
       display: flex;
       gap: 10px;
       z-index: 1000;
+      flex-wrap: wrap;
+      max-width: calc(100% - 40px);
     }
 
     button {
@@ -135,6 +137,12 @@
 </head>
 <body>
   <div class="controls">
+    <select id="sceneSelect">
+      <option value="1">Система висит на нескольких точках</option>
+      <option value="2">Система падает на пол</option>
+      <option value="3">Система с несовместными ограничениями</option>
+      <option value="4">Две системы</option>
+    </select>
     <button id="gravityBtn">Гравитация: ВКЛ</button>
     <select id="solverSelect">
       <option value="hitman">Метод: Hitman</option>
@@ -174,8 +182,31 @@
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
-  <script src="../figure.js"></script>
-  <script src="./scene.js"></script>
-  <script src="../numeric_simulation.js"></script>
+  <script src="./figure.js"></script>
+  <script src="./scenes.js"></script>
+  <script src="./numeric_simulation.js"></script>
+  <script>
+    // Scene switcher handler
+    document.getElementById('sceneSelect').addEventListener('change', function(e) {
+      const sceneNumber = parseInt(e.target.value);
+      switchScene(sceneNumber);
+    });
+
+    // Parameters handlers (existing functionality)
+    document.getElementById('iterationsInput').addEventListener('input', function() {
+      settings.solverIterations = parseInt(this.value);
+      document.getElementById('iterationsValue').textContent = this.value;
+    });
+
+    document.getElementById('stiffnessInput').addEventListener('input', function() {
+      settings.constraintStiffness = parseFloat(this.value);
+      document.getElementById('stiffnessValue').textContent = this.value.toFixed(2);
+    });
+
+    document.getElementById('frictionInput').addEventListener('input', function() {
+      settings.frictionCoefficient = parseFloat(this.value);
+      document.getElementById('frictionValue').textContent = this.value.toFixed(2);
+    });
+  </script>
 </body>
 </html>
