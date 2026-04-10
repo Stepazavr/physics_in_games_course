@@ -770,7 +770,7 @@ function detectObjectCollisions() {
 }
 
 // =================================
-// Cloth Self-Collision Resolution (via spatial hash)
+// Cloth Self-Collision Resolution (via spatial hash in 3D)
 // =================================
 function resolveClothSelfCollisions() {
   const fr = settings.frictionCoefficient;
@@ -781,80 +781,93 @@ function resolveClothSelfCollisions() {
     const pointsInFigure = figure.points;
     const R = figure.pointRadius;
     
-    // Build spatial hash
+    // Build spatial hash (3D)
     const cell = Math.max(2 * R, 1e-4);
     const inv = 1 / cell;
     const hash = new Map();
-    const hk = (ix, iy) => (ix * 73856093) ^ (iy * 19349663);
+    const hk = (ix, iy, iz) => (ix * 73856093) ^ (iy * 19349663) ^ (iz * 83492791);
     
     for (let i = 0; i < pointsInFigure.length; i++) {
       const p = pointsInFigure[i].positionPredicted;
-      const k = hk(Math.floor(p.x * inv), Math.floor(p.y * inv));
+      const k = hk(Math.floor(p.x * inv), Math.floor(p.y * inv), Math.floor(p.z * inv));
       let a = hash.get(k);
       if (!a) { a = []; hash.set(k, a); }
       a.push(i);
     }
     
-    // Check collisions using hash
+    // Check collisions using hash (3D)
     for (let i = 0; i < pointsInFigure.length; i++) {
       const pi = pointsInFigure[i];
       const pp = pi.positionPredicted;
       const cx = Math.floor(pp.x * inv);
       const cy = Math.floor(pp.y * inv);
+      const cz = Math.floor(pp.z * inv);
       
       for (let ox = -1; ox <= 1; ox++) {
         for (let oy = -1; oy <= 1; oy++) {
-          const arr = hash.get(hk(cx + ox, cy + oy));
-          if (!arr) continue;
-          
-          for (const j of arr) {
-            if (j <= i) continue;
+          for (let oz = -1; oz <= 1; oz++) {
+            const arr = hash.get(hk(cx + ox, cy + oy, cz + oz));
+            if (!arr) continue;
             
-            const pj = pointsInFigure[j];
-            
-            const w_i = pi.isFixed ? 0 : 1 / pi.mass;
-            const w_j = pj.isFixed ? 0 : 1 / pj.mass;
-            const w = w_i + w_j;
-            
-            if (w === 0) continue;
-            
-            const minD = 2 * R;
-            const dx = pj.positionPredicted.x - pi.positionPredicted.x;
-            const dy = pj.positionPredicted.y - pi.positionPredicted.y;
-            const len2 = dx * dx + dy * dy;
-            
-            if (len2 >= minD * minD || len2 < 1e-12) continue;
-            
-            const len = Math.sqrt(len2);
-            const corr = (minD - len) / w;
-            const nx = dx / len;
-            const ny = dy / len;
-            
-            // Position correction
-            pi.positionPredicted.x -= corr * w_i * nx;
-            pi.positionPredicted.y -= corr * w_i * ny;
-            pj.positionPredicted.x += corr * w_j * nx;
-            pj.positionPredicted.y += corr * w_j * ny;
-            
-            // Tangential friction
-            if (fr > 0) {
-              const rjx = pj.positionPredicted.x - pj.position.x;
-              const rjy = pj.positionPredicted.y - pj.position.y;
-              const rix = pi.positionPredicted.x - pi.position.x;
-              const riy = pi.positionPredicted.y - pi.position.y;
+            for (const j of arr) {
+              if (j <= i) continue;
               
-              let tx = rjx - rix;
-              let ty = rjy - riy;
+              const pj = pointsInFigure[j];
               
-              const tn = tx * nx + ty * ny;
-              tx -= tn * nx;
-              ty -= tn * ny;
+              const w_i = pi.isFixed ? 0 : 1 / pi.mass;
+              const w_j = pj.isFixed ? 0 : 1 / pj.mass;
+              const w = w_i + w_j;
               
-              const f = fr * 0.5;
-              pi.positionPredicted.x += f * w_i / w * tx;
-              pi.positionPredicted.y += f * w_i / w * ty;
-              pj.positionPredicted.x -= f * w_j / w * tx;
-              pj.positionPredicted.y -= f * w_j / w * ty;
+              if (w === 0) continue;
+              
+              const minD = 2 * R;
+              const dx = pj.positionPredicted.x - pi.positionPredicted.x;
+              const dy = pj.positionPredicted.y - pi.positionPredicted.y;
+              const dz = pj.positionPredicted.z - pi.positionPredicted.z;
+              const len2 = dx * dx + dy * dy + dz * dz;
+              
+              if (len2 >= minD * minD || len2 < 1e-12) continue;
+              
+              const len = Math.sqrt(len2);
+              const corr = (minD - len) / w;
+              const nx = dx / len;
+              const ny = dy / len;
+              const nz = dz / len;
+              
+              // Position correction (3D)
+              pi.positionPredicted.x -= corr * w_i * nx;
+              pi.positionPredicted.y -= corr * w_i * ny;
+              pi.positionPredicted.z -= corr * w_i * nz;
+              pj.positionPredicted.x += corr * w_j * nx;
+              pj.positionPredicted.y += corr * w_j * ny;
+              pj.positionPredicted.z += corr * w_j * nz;
+              
+              // Tangential friction (3D)
+              if (fr > 0) {
+                const rjx = pj.positionPredicted.x - pj.position.x;
+                const rjy = pj.positionPredicted.y - pj.position.y;
+                const rjz = pj.positionPredicted.z - pj.position.z;
+                const rix = pi.positionPredicted.x - pi.position.x;
+                const riy = pi.positionPredicted.y - pi.position.y;
+                const riz = pi.positionPredicted.z - pi.position.z;
+                
+                let tx = rjx - rix;
+                let ty = rjy - riy;
+                let tz = rjz - riz;
+                
+                const tn = tx * nx + ty * ny + tz * nz;
+                tx -= tn * nx;
+                ty -= tn * ny;
+                tz -= tn * nz;
+                
+                const f = fr * 0.5;
+                pi.positionPredicted.x += f * w_i / w * tx;
+                pi.positionPredicted.y += f * w_i / w * ty;
+                pi.positionPredicted.z += f * w_i / w * tz;
+                pj.positionPredicted.x -= f * w_j / w * tx;
+                pj.positionPredicted.y -= f * w_j / w * ty;
+                pj.positionPredicted.z -= f * w_j / w * tz;
+              }
             }
           }
         }
