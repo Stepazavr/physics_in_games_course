@@ -410,7 +410,7 @@ function solveDistanceConstraint_XPBD(constraint) {
   const C = deltaLength - restLength;
   
   const k = settings.constraintStiffness;
-  const compliance = k > 0 ? 1.0 / k : 0;
+  const compliance = k < 1 ? (1.0 - k) / k : 0;
   
   const w1 = p1.isFixed ? 0 : 1 / p1.mass;
   const w2 = p2.isFixed ? 0 : 1 / p2.mass;
@@ -451,7 +451,7 @@ function solveCollisionConstraint_XPBD(constraint) {
   
   if (C < 0) {
     const k = settings.constraintStiffness;
-    const compliance = k > 0 ? 1.0 / k : 0;
+    const compliance = k < 1 ? (1.0 - k) / k : 0;
     
     const w1 = p1.isFixed ? 0 : 1 / p1.mass;
     
