@@ -5,7 +5,7 @@ const settings = {
   sceneWidth: 800,
   sceneHeight: 600,
   
-  gravity: { x: 0, y: 980 },
+  gravity: { x: 0, y: 980, z: 0 },
   timeStep: 0.01,
   solverIterations: 10,
   constraintStiffness: 1.0,
@@ -119,7 +119,7 @@ function collectPointsAndConstraints() {
 // =================================
 
 function approximateDistance(vectorDiff) {
-  const dSquared = vectorDiff.x * vectorDiff.x + vectorDiff.y * vectorDiff.y;
+  const dSquared = vectorDiff.x * vectorDiff.x + vectorDiff.y * vectorDiff.y + vectorDiff.z * vectorDiff.z;
   return Math.sqrt(dSquared);
 }
 
@@ -575,9 +575,9 @@ function toggleGravity() {
     for (const point of figure.points) {
       point.velocity.mult(0);
       if (!gravityEnabled) {
-        point.acceleration.set(0, 0);
+        point.acceleration.set(0, 0, 0);
       } else {
-        point.acceleration.set(settings.gravity.x, settings.gravity.y);
+        point.acceleration.set(settings.gravity.x, settings.gravity.y, settings.gravity.z);
       }
     }
   }
@@ -596,7 +596,7 @@ function resetSimulation() {
   if (!gravityEnabled) {
     for (const figure of figures) {
       for (const point of figure.points) {
-        point.acceleration.set(0, 0);
+        point.acceleration.set(0, 0, 0);
       }
     }
   }
@@ -647,17 +647,19 @@ window.addEventListener('load', () => {
 
 function updateFigureCenter(figure) {
   if (!figure.points || figure.points.length === 0) {
-    figure.center = createVector(0, 0);
+    figure.center = createVector(0, 0, 0);
     return;
   }
 
   let centerX = 0;
   let centerY = 0;
+  let centerZ = 0;
   for (const point of figure.points) {
     centerX += point.position.x;
     centerY += point.position.y;
+    centerZ += point.position.z;
   }
-  figure.center = createVector(centerX / figure.points.length, centerY / figure.points.length);
+  figure.center = createVector(centerX / figure.points.length, centerY / figure.points.length, centerZ / figure.points.length);
 
   if (figure.convex_points) {
     for (const point of figure.convex_points) {

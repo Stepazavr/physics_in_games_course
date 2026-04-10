@@ -16,13 +16,13 @@ function createCircleFigure(name, center, radius, numPoints) {
     const angle = TWO_PI * (i / numPoints);
     const x = center.x + radius * cos(angle);
     const y = center.y + radius * sin(angle);
-    const pos = createVector(x, y);
+    const pos = createVector(x, y, 0);
     const normal = p5.Vector.sub(pos, center).normalize();
     
     const point = {
       position: pos.copy(),
-      velocity: createVector(0, 0),
-      acceleration: createVector(settings.gravity.x, settings.gravity.y),
+      velocity: createVector(0, 0, 0),
+      acceleration: createVector(settings.gravity.x, settings.gravity.y, 0),
       positionPredicted: pos.copy(),
       mass: 1,
       isFixed: false,
@@ -63,7 +63,7 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
     points: [],
     constraints: [],
     grid: [],
-    center: createVector(topLeftPos.x + width / 2, topLeftPos.y + height / 2),
+    center: createVector(topLeftPos.x + width / 2, topLeftPos.y + height / 2, 0),
     convex_points: [],
     pointRadius: 4,
   };
@@ -76,18 +76,18 @@ function createGridFigure(name, topLeftPos, width, height, numRows, numCols, num
     for (let col = 0; col < numCols; col++) {
       const x = topLeftPos.x + col * dx;
       const y = topLeftPos.y + row * dy;
-      const pos = createVector(x, y);
+      const pos = createVector(x, y, 0);
       const isConvex = row === 0 || row === numRows - 1 || col === 0 || col === numCols - 1;
 
-      let normal = createVector(0, 0);
+      let normal = createVector(0, 0, 0);
       if (isConvex) {
         normal = p5.Vector.sub(pos, figure.center).normalize();
       }
       
       const point = {
         position: pos.copy(),
-        velocity: createVector(0, 0),
-        acceleration: createVector(settings.gravity.x, settings.gravity.y),
+        velocity: createVector(0, 0, 0),
+        acceleration: createVector(settings.gravity.x, settings.gravity.y, 0),
         positionPredicted: pos.copy(),
         mass: 1,
         isFixed: false,

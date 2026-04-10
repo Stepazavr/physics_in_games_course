@@ -10,7 +10,7 @@ let currentSceneNumber = 1;
 function initScene_1() {
   figures = [];
 
-  const gridTopLeft = createVector(250, 0);
+  const gridTopLeft = createVector(250, 0, 0);
   const gridWidth = 300;
   const gridHeight = 300;
   const gridRows = 30;
@@ -32,13 +32,13 @@ function initScene_1() {
 function initScene_2() {
   figures = [];
 
-  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 + 200);
+  const center = createVector(settings.sceneWidth / 2, settings.sceneHeight / 2 + 200, 0);
   const radius = 80;
   const numPoints = 15;
 
   const circle = createCircleFigure('circle_1', center, radius, numPoints);
 
-  const gridTopLeft = createVector(250, 0);
+  const gridTopLeft = createVector(250, 0, 0);
   const gridWidth = 300;
   const gridHeight = 300;
   const gridRows = 30;
@@ -54,7 +54,7 @@ function initScene_2() {
 function initScene_3() {
   figures = [];
 
-  const gridTopLeft = createVector(150, 50);
+  const gridTopLeft = createVector(150, 50, 0);
   const gridWidth = 300;
   const gridHeight = 350;
   const gridRows = 30;
@@ -85,13 +85,13 @@ function initScene_3() {
 function initScene_4() {
   figures = [];
 
-  const center1 = createVector(settings.sceneWidth / 4, settings.sceneHeight / 2 - 100);
+  const center1 = createVector(settings.sceneWidth / 4, settings.sceneHeight / 2 - 100, 0);
   const radius1 = 60;
   const numPoints1 = 15;
   const circle1 = createCircleFigure('circle_1', center1, radius1, numPoints1);
   figures.push(circle1);
 
-  const center2 = createVector(settings.sceneWidth * 3 / 4, settings.sceneHeight / 2 - 100);
+  const center2 = createVector(settings.sceneWidth * 3 / 4, settings.sceneHeight / 2 - 100, 0);
   const radius2 = 60;
   const numPoints2 = 15;
   const circle2 = createCircleFigure('circle_2', center2, radius2, numPoints2);
