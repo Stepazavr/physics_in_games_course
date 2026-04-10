@@ -17,7 +17,6 @@ const settings = {
   constraintStrokeColor: { r: 100, g: 100, b: 255, a: 80 },
   constraintStrokeWeight: 2,
   
-  pointRadius: 4,
   pointColor: { r: 255, g: 255, b: 255 },
   
   constraintErrorThreshold: 1e-1,

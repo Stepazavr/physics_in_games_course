@@ -10,11 +10,11 @@ let currentSceneNumber = 1;
 function initScene_1() {
   figures = [];
 
-  const gridTopLeft = createVector(100, 0);
+  const gridTopLeft = createVector(250, 0);
   const gridWidth = 300;
   const gridHeight = 300;
-  const gridRows = 20;
-  const gridCols = 20;
+  const gridRows = 30;
+  const gridCols = 30;
   
   const grid = createGridFigure('grid_1', gridTopLeft, gridWidth, gridHeight, gridRows, gridCols);
   
@@ -38,9 +38,9 @@ function initScene_2() {
 
   const circle = createCircleFigure('circle_1', center, radius, numPoints);
 
-  const gridTopLeft = createVector(150, 0);
-  const gridWidth = 500;
-  const gridHeight = 500;
+  const gridTopLeft = createVector(250, 0);
+  const gridWidth = 300;
+  const gridHeight = 300;
   const gridRows = 30;
   const gridCols = 30;
 
@@ -55,7 +55,7 @@ function initScene_3() {
   figures = [];
 
   const gridTopLeft = createVector(150, 50);
-  const gridWidth = 500;
+  const gridWidth = 300;
   const gridHeight = 350;
   const gridRows = 30;
   const gridCols = 30;
