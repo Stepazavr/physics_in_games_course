@@ -80,6 +80,8 @@ function simulate() {
   
   detectAndAddCollisions();
 
+  resolveClothSelfCollisions();
+
   detectObjectCollisions();
   
   const allConstraints = [...constraints, ...frameCollisionConstraints];
@@ -767,12 +769,10 @@ function detectObjectCollisions() {
 }
 
 // =================================
-// Cloth Self-Collision Resolution
+// Cloth Self-Collision Resolution (via spatial hash)
 // =================================
 function resolveClothSelfCollisions() {
-  const S = settings.solverIterations;
-  const dt = settings.timeStep;
-  const d = 0.8;
+  const fr = settings.frictionCoefficient;
   
   for (const figure of figures) {
     if (!figure.points || figure.points.length < 2) continue;
@@ -780,44 +780,81 @@ function resolveClothSelfCollisions() {
     const pointsInFigure = figure.points;
     const R = figure.pointRadius;
     
+    // Build spatial hash
+    const cell = Math.max(2 * R, 1e-4);
+    const inv = 1 / cell;
+    const hash = new Map();
+    const hk = (ix, iy) => (ix * 73856093) ^ (iy * 19349663);
+    
     for (let i = 0; i < pointsInFigure.length; i++) {
-      for (let j = i + 1; j < pointsInFigure.length; j++) {
-        const p1 = pointsInFigure[i];
-        const p2 = pointsInFigure[j];
-        
-        if (p1.isFixed && p2.isFixed) continue;
-        
-        const delta = p5.Vector.sub(p2.positionPredicted, p1.positionPredicted);
-        const currentDistance = delta.mag();
-        
-        if (currentDistance < 0.001) continue;
-        
-        let restDistance = currentDistance;
-        
-        for (const constraint of figure.constraints) {
-          if (constraint.type === 'distance') {
-            if ((constraint.p1 === p1 && constraint.p2 === p2) ||
-                (constraint.p1 === p2 && constraint.p2 === p1)) {
-              restDistance = constraint.distance;
-              break;
+      const p = pointsInFigure[i].positionPredicted;
+      const k = hk(Math.floor(p.x * inv), Math.floor(p.y * inv));
+      let a = hash.get(k);
+      if (!a) { a = []; hash.set(k, a); }
+      a.push(i);
+    }
+    
+    // Check collisions using hash
+    for (let i = 0; i < pointsInFigure.length; i++) {
+      const pi = pointsInFigure[i];
+      const pp = pi.positionPredicted;
+      const cx = Math.floor(pp.x * inv);
+      const cy = Math.floor(pp.y * inv);
+      
+      for (let ox = -1; ox <= 1; ox++) {
+        for (let oy = -1; oy <= 1; oy++) {
+          const arr = hash.get(hk(cx + ox, cy + oy));
+          if (!arr) continue;
+          
+          for (const j of arr) {
+            if (j <= i) continue;
+            
+            const pj = pointsInFigure[j];
+            
+            const w_i = pi.isFixed ? 0 : 1 / pi.mass;
+            const w_j = pj.isFixed ? 0 : 1 / pj.mass;
+            const w = w_i + w_j;
+            
+            if (w === 0) continue;
+            
+            const minD = 2 * R;
+            const dx = pj.positionPredicted.x - pi.positionPredicted.x;
+            const dy = pj.positionPredicted.y - pi.positionPredicted.y;
+            const len2 = dx * dx + dy * dy;
+            
+            if (len2 >= minD * minD || len2 < 1e-12) continue;
+            
+            const len = Math.sqrt(len2);
+            const corr = (minD - len) / w;
+            const nx = dx / len;
+            const ny = dy / len;
+            
+            // Position correction
+            pi.positionPredicted.x -= corr * w_i * nx;
+            pi.positionPredicted.y -= corr * w_i * ny;
+            pj.positionPredicted.x += corr * w_j * nx;
+            pj.positionPredicted.y += corr * w_j * ny;
+            
+            // Tangential friction
+            if (fr > 0) {
+              const rjx = pj.positionPredicted.x - pj.position.x;
+              const rjy = pj.positionPredicted.y - pj.position.y;
+              const rix = pi.positionPredicted.x - pi.position.x;
+              const riy = pi.positionPredicted.y - pi.position.y;
+              
+              let tx = rjx - rix;
+              let ty = rjy - riy;
+              
+              const tn = tx * nx + ty * ny;
+              tx -= tn * nx;
+              ty -= tn * ny;
+              
+              const f = fr * 0.5;
+              pi.positionPredicted.x += f * w_i / w * tx;
+              pi.positionPredicted.y += f * w_i / w * ty;
+              pj.positionPredicted.x -= f * w_j / w * tx;
+              pj.positionPredicted.y -= f * w_j / w * ty;
             }
-          }
-        }
-        
-        const D_collision = Math.min(2 * R, restDistance);
-        
-        if (currentDistance < D_collision) {
-          const correction = (D_collision - currentDistance) / 2;
-          const direction = delta.copy().normalize();
-          
-          if (!p1.isFixed) {
-            p1.positionPredicted.x -= direction.x * correction;
-            p1.positionPredicted.y -= direction.y * correction;
-          }
-          
-          if (!p2.isFixed) {
-            p2.positionPredicted.x += direction.x * correction;
-            p2.positionPredicted.y += direction.y * correction;
           }
         }
       }
