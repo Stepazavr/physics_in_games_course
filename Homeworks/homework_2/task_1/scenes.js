@@ -10,13 +10,6 @@ let currentSceneNumber = 1;
 function initScene_1() {
   figures = [];
 
-  const center = createVector(settings.sceneWidth / 2 + 200, settings.sceneHeight / 2 - 100);
-  const radius = 80;
-  const numPoints = 15;
-
-  const circle = createCircleFigure('circle_1', center, radius, numPoints);
-  figures.push(circle);
-
   const gridTopLeft = createVector(100, 0);
   const gridWidth = 300;
   const gridHeight = 300;
@@ -81,7 +74,7 @@ function initScene_3() {
 }
 
 // =================================
-// Scene 4 - Две системы
+// Scene 4 - два шара
 // =================================
 function initScene_4() {
   figures = [];

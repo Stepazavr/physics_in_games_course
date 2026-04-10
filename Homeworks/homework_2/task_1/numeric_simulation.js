@@ -79,6 +79,8 @@ function simulate() {
   handlePointDrag();
   
   detectAndAddCollisions();
+
+  detectObjectCollisions();
   
   const allConstraints = [...constraints, ...frameCollisionConstraints];
   if (currentSolverMethod === 'hitman') {
