@@ -594,7 +594,6 @@ function handlePointDrag() {
   
   draggedPoint.position.x = mouseX;
   draggedPoint.position.y = mouseY;
-  draggedPoint.position.z = 0.01*mouseY;
   // Keep Z coordinate unchanged when dragging in 2D interface
   draggedPoint.positionPredicted.set(draggedPoint.position);
   draggedPoint.velocity.mult(0);
