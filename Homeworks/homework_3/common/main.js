@@ -363,28 +363,28 @@ function _drawAngularMomentumArrows() {
   const axisY = quatRotate(b.q, [0, 1, 0]);
   const axisZ = quatRotate(b.q, [0, 0, 1]);
   
-  _arrowWithHead(c, vAdd(c, vMul(axisX, axisXLen)), [255, 100, 100]);
-  _arrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [100, 255, 100]);
-  _arrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [100, 150, 255]);
+  _arrowWithHead(c, vAdd(c, vMul(axisX, axisXLen)), [255, 50, 50]);    // Bright red
+  _arrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [50, 255, 50]);     // Bright green
+  _arrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [50, 150, 255]);    // Bright blue
   
   const L = bodyAngularMomentum(b);
   const L0 = sim.L0 || [0,0,0];
   const Lmax = Math.max(vLen(L), vLen(L0), 0.01);
   const sL = 2.5 / Lmax;
   
-  _arrowWithHead(c, vAdd(c, vMul(L0, sL)), [100, 200, 255], 0.6);
-  _arrowWithHead(c, vAdd(c, vMul(L,  sL)), [100, 255, 255]);
+  _arrowWithHead(c, vAdd(c, vMul(L0, sL)), [100, 255, 255], 0.6);
+  _arrowWithHead(c, vAdd(c, vMul(L,  sL)), [150, 255, 100]);
 }
 
 function _arrowWithHead(a, b, color, opacity = 1.0) {
-  _thinRod(a, b, 0.025, color, opacity);
+  _thinRod(a, b, 0.02, color, opacity);
   
   const dir = vSub(b, a);
   const len = vLen(dir);
   if (len < 1e-6) return;
   
   const n = vMul(dir, 1 / len);
-  const arrowSize = 0.15;
+  const arrowSize = 0.45;
   
   let perp1 = vCross(n, [0, 1, 0]);
   if (vLen(perp1) < 0.1) perp1 = vCross(n, [1, 0, 0]);

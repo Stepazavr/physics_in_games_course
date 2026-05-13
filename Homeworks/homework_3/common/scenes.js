@@ -74,7 +74,7 @@ function _scenePart1() {
     x: [0, 0, 0],
     halfExtents: [1.5, 0.5, 0.25],
     m: 2.0,
-    color: [255, 150, 150],
+    color: BRIGHT_COLORS[0].slice(),
   });
   b.w = [0.05, 2.0, 0.05];
   sim.bodies.push(b);
@@ -93,7 +93,7 @@ function _scenePart2(kind) {
     const b = makeBody({
       x: [0, 1.0, 0],
       halfExtents: [1.5, 0.5, 0.25],
-      m: 2.0, color: [255, 150, 150],
+      m: 2.0, color: BRIGHT_COLORS[0].slice(),
     });
     b.q = quatFromAxisAngle([0, 0, 1], 0.3);
     b.w = [0.2, 0.1, 1.5];
@@ -110,11 +110,11 @@ function _scenePart2(kind) {
   } else {
     const A = makeBody({
       x: [-2.0, 2.5, 0], halfExtents: [1.5, 0.5, 0.25],
-      m: 2.0, color: [255, 150, 150],
+      m: 2.0, color: BRIGHT_COLORS[0].slice(),
     });
     const B = makeBody({
       x: [2.0, 2.5, 0], halfExtents: [1.5, 0.5, 0.25],
-      m: 2.0, color: [150, 180, 255],
+      m: 2.0, color: BRIGHT_COLORS[1].slice(),
     });
     A.w = [0.1, 0.05, 1.8];
     B.w = [-0.1, -0.05, -1.8];
