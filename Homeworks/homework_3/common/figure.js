@@ -30,15 +30,6 @@ function makeFigure(opts) {
   };
 }
 
-function figurePointWorld(figure, rLocal) {
-  return vAdd(figure.x, quatRotate(figure.q, rLocal));
-}
-
-function figurePointVel(figure, rWorld) {
-  const r = vSub(rWorld, figure.x);
-  return vAdd(figure.v, vCross(figure.w, r));
-}
-
 function getFigureVerticesWorld(figure) {
   const h = figure.halfExtents;
   const verts = [];

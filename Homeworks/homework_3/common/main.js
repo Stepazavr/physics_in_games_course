@@ -58,7 +58,7 @@ function draw() {
   sim.fps = round(frameRate());
 
   perspective(PI / 3, width / height, 0.1, 500);
-  const eye = _camEye();
+  const eye = getCameraPosition();
   camera(eye.x, eye.y, eye.z, cam.tx, cam.ty, cam.tz, 0, -1, 0);
 
   ambientLight(200, 200, 210);
@@ -67,7 +67,7 @@ function draw() {
 
   if (!sim.paused) updateSimulation();
 
-  _drawScene();
+  drawScene();
   updateMetrics();
 }
 
@@ -332,7 +332,7 @@ function resolveContactsXPBD(contacts, dt) {
   }
 }
 
-function _camEye() {
+function getCameraPosition() {
   const cp = cos(cam.phi), sp = sin(cam.phi);
   const ct = cos(cam.theta), st = sin(cam.theta);
   const dist = sim.cameraDistOverride || cam.dist;
@@ -343,15 +343,15 @@ function _camEye() {
   };
 }
 
-function _drawScene() {
+function drawScene() {
   for (const b of sim.bodies) drawFigure(b);
 
-  if (sim.part === 1) _drawAngularMomentumArrows();
-  if (sim.part === 2) _drawJoints();
+  if (sim.part === 1) drawAngularMomentumVectors();
+  if (sim.part === 2) drawConstraints();
   // Contact points disabled for large scenes (3B, 4A)
 }
 
-function _drawAngularMomentumArrows() {
+function drawAngularMomentumVectors() {
   const b = sim.bodies[0];
   if (!b) return;
   
@@ -363,21 +363,21 @@ function _drawAngularMomentumArrows() {
   const axisY = quatRotate(b.q, [0, 1, 0]);
   const axisZ = quatRotate(b.q, [0, 0, 1]);
   
-  _arrowWithHead(c, vAdd(c, vMul(axisX, axisXLen)), [255, 50, 50]);    // Bright red
-  _arrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [50, 255, 50]);     // Bright green
-  _arrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [50, 150, 255]);    // Bright blue
+  drawArrowWithHead(c, vAdd(c, vMul(axisX, axisXLen)), [255, 50, 50]);    // Bright red
+  drawArrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [50, 255, 50]);     // Bright green
+  drawArrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [50, 150, 255]);    // Bright blue
   
   const L = computeAngularMomentum(b);
   const L0 = sim.L0 || [0,0,0];
   const Lmax = Math.max(vLen(L), vLen(L0), 0.01);
   const sL = 2.5 / Lmax;
   
-  _arrowWithHead(c, vAdd(c, vMul(L0, sL)), [100, 255, 255], 0.6);
-  _arrowWithHead(c, vAdd(c, vMul(L,  sL)), [150, 255, 100]);
+  drawArrowWithHead(c, vAdd(c, vMul(L0, sL)), [100, 255, 255], 0.6);
+  drawArrowWithHead(c, vAdd(c, vMul(L,  sL)), [150, 255, 100]);
 }
 
-function _arrowWithHead(a, b, color, opacity = 1.0) {
-  _thinRod(a, b, 0.02, color, opacity);
+function drawArrowWithHead(a, b, color, opacity = 1.0) {
+  drawCylinderBetweenPoints(a, b, 0.02, color, opacity);
   
   const dir = vSub(b, a);
   const len = vLen(dir);
@@ -407,11 +407,7 @@ function _arrowWithHead(a, b, color, opacity = 1.0) {
   pop();
 }
 
-function _arrow(a, b, color) {
-  _thinRod(a, b, 0.025, color);
-}
-
-function _thinRod(a, b, radius, color, opacity = 1.0) {
+function drawCylinderBetweenPoints(a, b, radius, color, opacity = 1.0) {
   const dir = vSub(b, a);
   const len = vLen(dir);
   if (len < 1e-6) return;
@@ -436,7 +432,7 @@ function _thinRod(a, b, radius, color, opacity = 1.0) {
   pop();
 }
 
-function _drawJoints() {
+function drawConstraints() {
   for (const s of sim.springs) {
     const A = sim.bodies[s.figureIdx];
     const pA = vAdd(A.x, quatRotate(A.q, s.rLocal));
@@ -450,7 +446,7 @@ function _drawJoints() {
       200
     ];
     
-    _thinRod(pA, pB, 0.02, col);
+    drawCylinderBetweenPoints(pA, pB, 0.02, col);
     
     push(); noStroke(); fill(220, 100, 200);
       translate(pA[0], pA[1], pA[2]); sphere(0.08, 16, 12);
@@ -470,7 +466,7 @@ function _drawJoints() {
       150 + Math.min(100, err * 1000),
       255
     ];
-    _thinRod(pA, pB, 0.035, col);
+    drawCylinderBetweenPoints(pA, pB, 0.035, col);
     
     push(); noStroke(); fill(100, 200, 255);
       translate(pA[0], pA[1], pA[2]); sphere(0.08, 16, 12);
@@ -479,51 +475,6 @@ function _drawJoints() {
       translate(pB[0], pB[1], pB[2]); sphere(0.08, 16, 12);
     pop();
   }
-}
-
-function _drawContacts() {
-  if (sim.contacts.length > 200) return;
-  push();
-    noStroke();
-    fill(255, 90, 90);
-    for (const ct of sim.contacts) {
-      const A = sim.bodies[ct.ai];
-      const p = vAdd(A.x, quatRotate(A.q, ct.rAloc));
-      push(); translate(p[0], p[1], p[2]); sphere(0.05, 10, 7); pop();
-    }
-  pop();
-}
-
-function _drawEnergyPlot() {
-  const cv = document.getElementById('energy-plot');
-  if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
-  ctx.fillStyle = '#0a0a18';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.strokeStyle = '#222244';
-  ctx.beginPath();
-  ctx.moveTo(0, H * 0.5);
-  ctx.lineTo(W, H * 0.5);
-  ctx.stroke();
-
-  const N = sim.energyHistory.length;
-  if (N < 2) return;
-  ctx.strokeStyle = '#55cc66';
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  for (let i = 0; i < N; i++) {
-    const r = sim.energyHistory[i];
-    const x = (i / (N - 1)) * W;
-    const y = H * 0.5 - (r - 1.0) * H * 0.5;
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-
-  ctx.fillStyle = '#779';
-  ctx.font = '10px "Courier New", monospace';
-  ctx.fillText(`${sim.freeRotMode}  E/E₀  range [0.5..1.5]`, 4, 12);
 }
 
 function mousePressed(event) {
