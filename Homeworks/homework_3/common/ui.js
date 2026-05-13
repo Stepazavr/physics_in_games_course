@@ -9,9 +9,9 @@ function initUI() {
   const partBtns = document.getElementById('part-btns');
   if (partBtns) {
     _group('part-btns', v => {
-      sim.part = parseInt(v);
+      simulation.part = parseInt(v);
       _rebuildSceneButtons();
-      _loadSceneWithDefaults(PART_SCENES[sim.part][0]);
+      _loadSceneWithDefaults(PART_SCENES[simulation.part][0]);
     });
   }
   
@@ -19,39 +19,39 @@ function initUI() {
 
   const solverBtns = document.getElementById('solver-btns');
   if (solverBtns) {
-    _group('solver-btns', v => { sim.solver = v; _refreshVisibility(); });
+    _group('solver-btns', v => { simulation.solver = v; _refreshVisibility(); });
   }
   
   const postStabBtns = document.getElementById('poststab-btns');
   if (postStabBtns) {
-    _group('poststab-btns', v => { sim.postStab = v; _refreshVisibility(); });
+    _group('poststab-btns', v => { simulation.postStab = v; _refreshVisibility(); });
   }
   
   const broadBtns = document.getElementById('broad-btns');
   if (broadBtns) {
-    _group('broad-btns', v => { sim.broadphase = v; });
+    _group('broad-btns', v => { simulation.broadphase = v; });
   }
 
   const iterSlider = document.getElementById('s-iter');
-  if (iterSlider) _slider('s-iter', 'v-iter', v => sim.iterations = Math.round(v), v => String(Math.round(v)));
+  if (iterSlider) _slider('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
   
   const compSlider = document.getElementById('s-comp');
-  if (compSlider) _slider('s-comp', 'v-comp', v => sim.compliance = v, v => v.toFixed(4));
+  if (compSlider) _slider('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
   
   const betaSlider = document.getElementById('s-beta');
-  if (betaSlider) _slider('s-beta', 'v-beta', v => sim.baumgarteBeta = v, v => v.toFixed(2));
+  if (betaSlider) _slider('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
   
   const musSlider = document.getElementById('s-mus');
-  if (musSlider) _slider('s-mus',  'v-mus',  v => sim.muStatic = v, v => v.toFixed(2));
+  if (musSlider) _slider('s-mus',  'v-mus',  v => simulation.muStatic = v, v => v.toFixed(2));
   
   const mudSlider = document.getElementById('s-mud');
-  if (mudSlider) _slider('s-mud',  'v-mud',  v => sim.muDynamic = v, v => v.toFixed(2));
+  if (mudSlider) _slider('s-mud',  'v-mud',  v => simulation.muDynamic = v, v => v.toFixed(2));
   
   const restSlider = document.getElementById('s-rest');
-  if (restSlider) _slider('s-rest', 'v-rest', v => sim.restitution = v, v => v.toFixed(2));
+  if (restSlider) _slider('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
   
   const gravSlider = document.getElementById('s-grav');
-  if (gravSlider) _slider('s-grav', 'v-grav', v => sim.gravity = v, v => v.toFixed(2));
+  if (gravSlider) _slider('s-grav', 'v-grav', v => simulation.gravity = v, v => v.toFixed(2));
   
   const kSlider = document.getElementById('s-k');
   if (kSlider) _slider('s-k',    'v-k',    v => _setSpringK(v), v => v.toFixed(0));
@@ -61,12 +61,12 @@ function initUI() {
 
   const pauseCheckbox = document.getElementById('s-pause');
   if (pauseCheckbox) {
-    pauseCheckbox.addEventListener('change', e => sim.paused = e.target.checked);
+    pauseCheckbox.addEventListener('change', e => simulation.paused = e.target.checked);
   }
   
   const resetBtn = document.getElementById('reset-btn');
   if (resetBtn) {
-    resetBtn.addEventListener('click', () => loadScene(sim.sceneId));
+    resetBtn.addEventListener('click', () => loadScene(simulation.sceneId));
   }
 
   _refreshVisibility();
@@ -76,7 +76,7 @@ function _rebuildSceneButtons() {
   const cont = document.getElementById('scene-btns');
   if (!cont) return;
   cont.innerHTML = '';
-  const list = PART_SCENES[sim.part];
+  const list = PART_SCENES[simulation.part];
   list.forEach((id, idx) => {
     const b = document.createElement('button');
     b.className = 'btn' + (idx === 0 ? ' active' : '');
@@ -107,20 +107,20 @@ function _applySceneDefaults(sc) {
   
   // Adjust camera distance for large scenes
   if (sc === '3B' || sc === '4A') {
-    sim.cameraDistOverride = 28;
+    simulation.cameraDistOverride = 28;
   } else {
-    sim.cameraDistOverride = null;
+    simulation.cameraDistOverride = null;
   }
   
   if (sc === '2A' || sc === '2B') {
-    sim.part2Kind = sc;
+    simulation.part2Kind = sc;
   } else if (sc === '2C') {
-    sim.part2Kind = '2C';
+    simulation.part2Kind = '2C';
     _setSolverButton('xpbd');
   } else if (sc === '2D') {
-    sim.part2Kind = '2D';
+    simulation.part2Kind = '2D';
     _setSolverButton('si');
-    sim.part2SI_PostStab = sim.part2SI_PostStab || 'baumgarte';
+    simulation.part2SI_PostStab = simulation.part2SI_PostStab || 'baumgarte';
   }
 }
 
@@ -137,11 +137,11 @@ function _refreshBroadphaseEnabled(sc) {
 }
 
 function _refreshVisibility() {
-  const p = sim.part;
-  const sc = sim.sceneId;
-  const sv = sim.solver;
-  const ps = sim.postStab;
-  const part2SI_PS = sim.part2SI_PostStab || 'baumgarte';
+  const p = simulation.part;
+  const sc = simulation.sceneId;
+  const sv = simulation.solver;
+  const ps = simulation.postStab;
+  const part2SI_PS = simulation.part2SI_PostStab || 'baumgarte';
   const isContactPart = (p === 3 || p === 4);
   const isPart2Spring = (sc === '2A' || sc === '2B');
   const isPart2Dist   = (sc === '2C' || sc === '2D');
@@ -175,7 +175,7 @@ function _show(id, visible) {
 }
 
 function _setBroadButton(val) {
-  sim.broadphase = val;
+  simulation.broadphase = val;
   const btns = document.querySelectorAll('#broad-btns .btn');
   if (btns.length === 0) return;
   btns.forEach(b => {
@@ -185,7 +185,7 @@ function _setBroadButton(val) {
 }
 
 function _setSolverButton(val) {
-  sim.solver = val;
+  simulation.solver = val;
   const btns = document.querySelectorAll('#solver-btns .btn');
   if (btns.length === 0) return;
   btns.forEach(b => {
@@ -195,22 +195,22 @@ function _setSolverButton(val) {
 }
 
 function _setSpringK(v) {
-  sim.springK = v;
-  for (const s of sim.springs) s.k = v;
+  simulation.springK = v;
+  for (const s of simulation.springs) s.k = v;
 }
 function _setSpringDamping(v) {
-  sim.springDamping = v;
-  for (const s of sim.springs) s.c = v;
+  simulation.springDamping = v;
+  for (const s of simulation.springs) s.c = v;
 }
 
 function updateMetrics() {
-  if (sim.part === 1) {
-    const b = sim.bodies[0];
+  if (simulation.part === 1) {
+    const b = simulation.bodies[0];
     const L = computeAngularMomentum(b);
     const E = computeKineticEnergy(b);
-    const L0 = sim.L0 || [0,0,0];
+    const L0 = simulation.L0 || [0,0,0];
     const omega = b.w || [0,0,0];
-    const omegaLen = vLen(omega);
+    const omegaLen = vectorLength(omega);
     
     _set('m-L0x', L0[0].toFixed(3));
     _set('m-L0y', L0[1].toFixed(3));
@@ -221,15 +221,15 @@ function updateMetrics() {
     _set('m-Lz', L[2].toFixed(3));
     
     _set('m-E',  E.toFixed(3));
-    _set('m-E0', sim.E0 > 1e-9 ? sim.E0.toFixed(3) : '—');
+    _set('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
     _set('m-omega', omegaLen.toFixed(3));
-  } else if (sim.part === 2) {
-    _set('m-k', sim.springK ? sim.springK.toFixed(0) : '200');
-    _set('m-sd', sim.springDamping ? sim.springDamping.toFixed(1) : '4.0');
+  } else if (simulation.part === 2) {
+    _set('m-k', simulation.springK ? simulation.springK.toFixed(0) : '200');
+    _set('m-sd', simulation.springDamping ? simulation.springDamping.toFixed(1) : '4.0');
     
-    if (sim.iterations) _set('m-iter', String(sim.iterations));
-    if (sim.compliance !== undefined) _set('m-comp', sim.compliance.toFixed(4));
-    if (sim.baumgarteBeta !== undefined) _set('m-beta', sim.baumgarteBeta.toFixed(2));
+    if (simulation.iterations) _set('m-iter', String(simulation.iterations));
+    if (simulation.compliance !== undefined) _set('m-comp', simulation.compliance.toFixed(4));
+    if (simulation.baumgarteBeta !== undefined) _set('m-beta', simulation.baumgarteBeta.toFixed(2));
   }
 }
 

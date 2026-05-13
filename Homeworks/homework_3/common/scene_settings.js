@@ -33,39 +33,39 @@ function loadScene(id) {
   const def = SCENES[id];
   if (!def) return;
 
-  sim.sceneId   = id;
-  sim.part      = def.part;
-  sim.bodies    = [];
-  sim.springs   = [];
-  sim.constraints = [];
-  sim.contacts  = [];
-  sim.broadphasePairs = 0;
-  sim.energyHistory = [];
-  sim.L0 = null;
-  sim.E0 = null;
-  sim.elapsed = 0;
-  sim.maxC = 0;
+  simulation.sceneId   = id;
+  simulation.part      = def.part;
+  simulation.bodies    = [];
+  simulation.springs   = [];
+  simulation.constraints = [];
+  simulation.contacts  = [];
+  simulation.broadphasePairs = 0;
+  simulation.energyHistory = [];
+  simulation.L0 = null;
+  simulation.E0 = null;
+  simulation.elapsed = 0;
+  simulation.maxC = 0;
 
   if (def.part === 1) {
-    sim.freeRotMode = def.mode;
+    simulation.freeRotMode = def.mode;
     _scenePart1();
   } else if (def.part === 2) {
-    sim.part2Kind = def.kind;
+    simulation.part2Kind = def.kind;
     _scenePart2(def.kind);
   } else if (def.part === 3) {
-    sim.part3Kind = def.kind;
+    simulation.part3Kind = def.kind;
     if (def.kind === 'stack') _sceneStack();
     else _scenePile();
   } else if (def.part === 4) {
-    sim.part4Kind = def.kind;
+    simulation.part4Kind = def.kind;
     _sceneVaried();
   }
 
   if (def.part === 1) {
-    const b = sim.bodies[0];
-    sim.L0 = computeAngularMomentum(b);
-    sim.E0 = computeKineticEnergy(b);
-    b._L = sim.L0.slice();
+    const b = simulation.bodies[0];
+    simulation.L0 = computeAngularMomentum(b);
+    simulation.E0 = computeKineticEnergy(b);
+    b._L = simulation.L0.slice();
   }
 }
 
@@ -95,19 +95,19 @@ function initCommonUIElements() {
   if (pauseBtn) {
     pauseBtn.addEventListener('click', function() {
       pausedState = !pausedState;
-      sim.paused = pausedState;
+      simulation.paused = pausedState;
       this.classList.toggle('active', pausedState);
-      this.textContent = sim.paused ? '▶ Resume' : '⏸ Pause';
+      this.textContent = simulation.paused ? '▶ Resume' : '⏸ Pause';
     });
   }
 
   if (resetBtn) {
     resetBtn.addEventListener('click', function() {
-      loadScene(sim.sceneId);
+      loadScene(simulation.sceneId);
       if (typeof _refreshBroadphaseEnabled === 'function') {
-        _refreshBroadphaseEnabled(SCENES[sim.sceneId]);
+        _refreshBroadphaseEnabled(SCENES[simulation.sceneId]);
       }
-      sim.paused = pausedState;
+      simulation.paused = pausedState;
       if (pauseBtn) {
         if (pausedState) {
           pauseBtn.classList.add('active');

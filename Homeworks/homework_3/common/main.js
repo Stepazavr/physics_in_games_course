@@ -6,7 +6,7 @@ const cam = {
   dragging: false, lx: 0, ly: 0,
 };
 
-let sim;
+let simulation;
 
 function setup() {
   const cont = document.getElementById('canvas-container');
@@ -16,7 +16,7 @@ function setup() {
   const taskPart = typeof TASK_PART !== 'undefined' ? TASK_PART : 1;
   const initialScene = taskPart === 1 ? '1A' : (taskPart === 2 ? '2A' : (taskPart === 3 ? '3A' : '4A'));
 
-  sim = {
+  simulation = {
     part: taskPart, sceneId: initialScene,
     bodies: [], springs: [], constraints: [], contacts: [],
     dt: 1/60, paused: false, fps: 60,
@@ -55,7 +55,7 @@ function draw() {
     resizeCanvas(cont.clientWidth, cont.clientHeight);
 
   background(232, 232, 236);
-  sim.fps = round(frameRate());
+  simulation.fps = round(frameRate());
 
   perspective(PI / 3, width / height, 0.1, 500);
   const eye = getCameraPosition();
@@ -65,132 +65,132 @@ function draw() {
   directionalLight(240, 240, 250, -0.4, -0.8, -0.3);
   directionalLight(140, 160, 200,  0.5, -0.2,  0.7);
 
-  if (!sim.paused) updateSimulation();
+  if (!simulation.paused) updateSimulation();
 
   drawScene();
   updateMetrics();
 }
 
 function updateSimulation() {
-  const dt = sim.dt;
-  sim.elapsed += dt;
-  sim.stepCount = (sim.stepCount || 0) + 1;
+  const dt = simulation.dt;
+  simulation.elapsed += dt;
+  simulation.stepCount = (simulation.stepCount || 0) + 1;
 
-  if (sim.part === 1)      updateFreeRotation(dt);
-  else if (sim.part === 2) updateConstraints(dt);
+  if (simulation.part === 1)      updateFreeRotation(dt);
+  else if (simulation.part === 2) updateConstraints(dt);
   else                     updateCollisions(dt);
 
-  if (sim.part === 1 && sim.bodies.length > 0) {
-    const E = computeKineticEnergy(sim.bodies[0]);
-    const ratio = sim.E0 > 1e-9 ? E / sim.E0 : 1;
-    sim.energyHistory.push(ratio);
-    if (sim.energyHistory.length > 600) sim.energyHistory.shift();
+  if (simulation.part === 1 && simulation.bodies.length > 0) {
+    const E = computeKineticEnergy(simulation.bodies[0]);
+    const ratio = simulation.E0 > 1e-9 ? E / simulation.E0 : 1;
+    simulation.energyHistory.push(ratio);
+    if (simulation.energyHistory.length > 600) simulation.energyHistory.shift();
   }
 }
 
 function updateFreeRotation(dt) {
-  const b = sim.bodies[0];
-  freeRotStep(b, dt, sim.freeRotMode);
+  const b = simulation.bodies[0];
+  freeRotStep(b, dt, simulation.freeRotMode);
 }
 
 function updateConstraints(dt) {
-  const kind = sim.part2Kind;
+  const kind = simulation.part2Kind;
 
   const useGravity = !(kind === 'distXPBD' || kind === 'distSI');
   if (useGravity) {
-    for (const b of sim.bodies) {
+    for (const b of simulation.bodies) {
       if (b.invM === 0) continue;
-      b.v[1] -= sim.gravity * dt;
+      b.v[1] -= simulation.gravity * dt;
     }
   }
 
   if (kind === 'springForce') {
-    for (const s of sim.springs) applySpringForce(sim.bodies[s.figureIdx], s, dt);
-    for (const b of sim.bodies) integrateAngularVelocity(b, dt);
-    for (const b of sim.bodies) integratePosition(b, dt);
+    for (const s of simulation.springs) applySpringForce(simulation.bodies[s.figureIdx], s, dt);
+    for (const b of simulation.bodies) integrateAngularVelocity(b, dt);
+    for (const b of simulation.bodies) integratePosition(b, dt);
   } else if (kind === 'springSoft') {
-    for (const b of sim.bodies) integrateAngularVelocity(b, dt);
-    for (const s of sim.springs) s.lambdaAccum = 0;
-    for (let it = 0; it < sim.iterations; it++)
-      for (const s of sim.springs) solveSpringSoft(sim.bodies[s.figureIdx], s, dt);
-    for (const b of sim.bodies) integratePosition(b, dt);
+    for (const b of simulation.bodies) integrateAngularVelocity(b, dt);
+    for (const s of simulation.springs) s.lambdaAccum = 0;
+    for (let it = 0; it < simulation.iterations; it++)
+      for (const s of simulation.springs) solveSpringSoft(simulation.bodies[s.figureIdx], s, dt);
+    for (const b of simulation.bodies) integratePosition(b, dt);
   } else if (kind === 'distXPBD') {
     const sub = 4;
     const subDt = dt / sub;
     for (let s = 0; s < sub; s++) {
-      for (const b of sim.bodies) {
+      for (const b of simulation.bodies) {
         if (b.invM === 0) continue;
         b.prevX = b.x.slice();
         b.prevQ = b.q.slice();
         b.x[0] += b.v[0] * subDt;
         b.x[1] += b.v[1] * subDt;
         b.x[2] += b.v[2] * subDt;
-        b.q = quatIntegrate(b.q, b.w, subDt);
+        b.q = integrateQuaternion(b.q, b.w, subDt);
       }
-      for (const c of sim.constraints) c.lambda = 0;
+      for (const c of simulation.constraints) c.lambda = 0;
       for (let it = 0; it < 2; it++) {
-        for (const c of sim.constraints) {
+        for (const c of simulation.constraints) {
           if (!c._state) c._state = { lambda: 0 };
           c._state.lambda = c.lambda;
-          const A = sim.bodies[c.a], B = sim.bodies[c.b];
+          const A = simulation.bodies[c.a], B = simulation.bodies[c.b];
           const err = applyDistanceConstraintXPBD(A, B, c.rAloc, c.rBloc, c.restLen,
-                                             sim.compliance, subDt, c._state);
+                                             simulation.compliance, subDt, c._state);
           c.lambda = c._state.lambda;
-          sim.maxC = Math.max(sim.maxC, err);
+          simulation.maxC = Math.max(simulation.maxC, err);
         }
       }
-      for (const b of sim.bodies) {
+      for (const b of simulation.bodies) {
         if (b.invM === 0) continue;
-        b.v = vMul(vSub(b.x, b.prevX), 1 / subDt);
-        const dq = quatMul(b.q, quatConj(b.prevQ));
+        b.v = scaleVector(subtractVectors(b.x, b.prevX), 1 / subDt);
+        const dq = multiplyQuaternions(b.q, conjugateQuaternion(b.prevQ));
         const wAxis = [dq[1], dq[2], dq[3]];
-        const wn = vLen(wAxis);
+        const wn = vectorLength(wAxis);
         if (wn > 1e-9) {
           const ang = 2 * Math.atan2(wn, dq[0]);
-          b.w = vMul(vMul(wAxis, 1/wn), ang / subDt);
+          b.w = scaleVector(scaleVector(wAxis, 1/wn), ang / subDt);
         }
       }
     }
-    sim.maxC = 0;
-    for (const c of sim.constraints) {
-      const A = sim.bodies[c.a], B = sim.bodies[c.b];
-      const pA = vAdd(A.x, quatRotate(A.q, c.rAloc));
-      const pB = vAdd(B.x, quatRotate(B.q, c.rBloc));
-      sim.maxC = Math.max(sim.maxC, Math.abs(vLen(vSub(pA, pB)) - c.restLen));
+    simulation.maxC = 0;
+    for (const c of simulation.constraints) {
+      const A = simulation.bodies[c.a], B = simulation.bodies[c.b];
+      const pA = addVectors(A.x, rotateVectorByQuat(A.q, c.rAloc));
+      const pB = addVectors(B.x, rotateVectorByQuat(B.q, c.rBloc));
+      simulation.maxC = Math.max(simulation.maxC, Math.abs(vectorLength(subtractVectors(pA, pB)) - c.restLen));
     }
   } else if (kind === 'distSI') {
-    for (const b of sim.bodies) integrateAngularVelocity(b, dt);
-    for (const c of sim.constraints) c.lambdaAccum = 0;
-    const postStab = sim.part2SI_PostStab || 'baumgarte';
-    const params = { beta: sim.baumgarteBeta, k: sim.springK, damping: sim.springDamping };
-    for (let it = 0; it < sim.iterations; it++) {
-      for (const c of sim.constraints) {
-        const A = sim.bodies[c.a], B = sim.bodies[c.b];
+    for (const b of simulation.bodies) integrateAngularVelocity(b, dt);
+    for (const c of simulation.constraints) c.lambdaAccum = 0;
+    const postStab = simulation.part2SI_PostStab || 'baumgarte';
+    const params = { beta: simulation.baumgarteBeta, k: simulation.springK, damping: simulation.springDamping };
+    for (let it = 0; it < simulation.iterations; it++) {
+      for (const c of simulation.constraints) {
+        const A = simulation.bodies[c.a], B = simulation.bodies[c.b];
         applyDistanceConstraintSI(A, B, c, postStab, params, dt);
       }
     }
-    for (const b of sim.bodies) integratePosition(b, dt);
+    for (const b of simulation.bodies) integratePosition(b, dt);
     if (postStab === 'nlgs') {
-      for (let it = 0; it < sim.iterations; it++) {
-        for (const c of sim.constraints) {
-          const A = sim.bodies[c.a], B = sim.bodies[c.b];
+      for (let it = 0; it < simulation.iterations; it++) {
+        for (const c of simulation.constraints) {
+          const A = simulation.bodies[c.a], B = simulation.bodies[c.b];
           correctDistancePosition(A, B, c);
         }
       }
     }
-    sim.maxC = 0;
-    for (const c of sim.constraints) {
-      const A = sim.bodies[c.a], B = sim.bodies[c.b];
-      const pA = vAdd(A.x, quatRotate(A.q, c.rAloc));
-      const pB = vAdd(B.x, quatRotate(B.q, c.rBloc));
-      sim.maxC = Math.max(sim.maxC, Math.abs(vLen(vSub(pA, pB)) - c.restLen));
+    simulation.maxC = 0;
+    for (const c of simulation.constraints) {
+      const A = simulation.bodies[c.a], B = simulation.bodies[c.b];
+      const pA = addVectors(A.x, rotateVectorByQuat(A.q, c.rAloc));
+      const pB = addVectors(B.x, rotateVectorByQuat(B.q, c.rBloc));
+      simulation.maxC = Math.max(simulation.maxC, Math.abs(vectorLength(subtractVectors(pA, pB)) - c.restLen));
     }
   }
 }
 
 function integrateAngularVelocity(b, dt) {
   if (b.invM === 0) return;
-  integrateAngularImplicit(b, [0,0,0], dt);
+  implicitAngularIntegration(b, [0,0,0], dt);
 }
 
 function integratePosition(b, dt) {
@@ -198,36 +198,36 @@ function integratePosition(b, dt) {
   b.x[0] += b.v[0] * dt;
   b.x[1] += b.v[1] * dt;
   b.x[2] += b.v[2] * dt;
-  b.q = quatIntegrate(b.q, b.w, dt);
+  b.q = integrateQuaternion(b.q, b.w, dt);
 }
 
 let sapState = null;
 
 function storeContactPosition(A, B, ct) {
-  ct._prevPA = vAdd(A.x, quatRotate(A.q, ct.rAloc));
-  ct._prevPB = B ? vAdd(B.x, quatRotate(B.q, ct.rBloc)) : ct.worldB.slice();
+  ct._prevPA = addVectors(A.x, rotateVectorByQuat(A.q, ct.rAloc));
+  ct._prevPB = B ? addVectors(B.x, rotateVectorByQuat(B.q, ct.rBloc)) : ct.worldB.slice();
 }
 
 function updateCollisions(dt) {
-  for (const b of sim.bodies) {
+  for (const b of simulation.bodies) {
     if (b.invM === 0) continue;
-    b.v[1] -= sim.gravity * dt;
+    b.v[1] -= simulation.gravity * dt;
   }
 
-  for (const b of sim.bodies) updateBoundingBox(b);
+  for (const b of simulation.bodies) updateBoundingBox(b);
 
   let pairs;
-  if (sim.broadphase === 'grid')      pairs = broadphaseSpatialGrid(sim.bodies, 1.5);
-  else if (sim.broadphase === 'sap') { if (!sapState) sapState = makeSAP();
-                                        pairs = broadphaseSAP(sim.bodies, sapState); }
-  else if (sim.broadphase === 'lbvh') pairs = broadphaseLBVH(sim.bodies);
-  else                                 pairs = broadphaseBruteforce(sim.bodies);
+  if (simulation.broadphase === 'grid')      pairs = findPotentialPairsSpatialGrid(simulation.bodies, 1.5);
+  else if (simulation.broadphase === 'sap') { if (!sapState) sapState = makeSAP();
+                                        pairs = broadphaseSAP(simulation.bodies, sapState); }
+  else if (simulation.broadphase === 'lbvh') pairs = broadphaseLBVH(simulation.bodies);
+  else                                 pairs = findPotentialPairsBrute(simulation.bodies);
 
-  sim.broadphasePairs = pairs.length;
+  simulation.broadphasePairs = pairs.length;
 
   const contacts = [];
   for (const [i, j] of pairs) {
-    const A = sim.bodies[i], B = sim.bodies[j];
+    const A = simulation.bodies[i], B = simulation.bodies[j];
     const list = detectBoxCollisionSAT(A, B);
     if (!list) continue;
     for (const c of list) {
@@ -235,48 +235,48 @@ function updateCollisions(dt) {
         ai: i, bi: j,
         rAloc: c.rAloc, rBloc: c.rBloc,
         n: c.n, depth: c.depth,
-        rA: quatRotate(A.q, c.rAloc),
-        rB: quatRotate(B.q, c.rBloc),
+        rA: rotateVectorByQuat(A.q, c.rAloc),
+        rB: rotateVectorByQuat(B.q, c.rBloc),
         lambdaN: 0, lambdaT1: 0, lambdaT2: 0,
         iterCount: 0,
       });
     }
   }
-  sim.contacts = contacts;
+  simulation.contacts = contacts;
 
-  if (sim.solver === 'xpbd') resolveContactsXPBD(contacts, dt);
+  if (simulation.solver === 'xpbd') resolveContactsXPBD(contacts, dt);
   else                        resolveContactsSI(contacts, dt);
 }
 
 function resolveContactsSI(contacts, dt) {
-  const params = { beta: sim.baumgarteBeta, mu: sim.muDynamic, restitution: sim.restitution };
+  const params = { beta: simulation.baumgarteBeta, mu: simulation.muDynamic, restitution: simulation.restitution };
 
-  for (const b of sim.bodies) {
+  for (const b of simulation.bodies) {
     if (b.invM === 0) continue;
-    integrateAngularImplicit(b, [0,0,0], dt);
+    implicitAngularIntegration(b, [0,0,0], dt);
   }
 
-  for (let it = 0; it < sim.iterations; it++) {
+  for (let it = 0; it < simulation.iterations; it++) {
     for (const ct of contacts) {
-      const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
+      const A = simulation.bodies[ct.ai], B = simulation.bodies[ct.bi];
       ct.iterCount = it;
-      applyContactNormalSI(A, B, ct, dt, params, sim.postStab);
+      applyContactNormalSI(A, B, ct, dt, params, simulation.postStab);
       applyContactFrictionSI(A, B, ct, params);
     }
   }
 
-  for (const b of sim.bodies) {
+  for (const b of simulation.bodies) {
     if (b.invM === 0) continue;
     b.x[0] += b.v[0] * dt;
     b.x[1] += b.v[1] * dt;
     b.x[2] += b.v[2] * dt;
-    b.q = quatIntegrate(b.q, b.w, dt);
+    b.q = integrateQuaternion(b.q, b.w, dt);
   }
 
-  if (sim.postStab === 'nlgs') {
-    for (let it = 0; it < Math.min(4, sim.iterations); it++) {
+  if (simulation.postStab === 'nlgs') {
+    for (let it = 0; it < Math.min(4, simulation.iterations); it++) {
       for (const ct of contacts) {
-        const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
+        const A = simulation.bodies[ct.ai], B = simulation.bodies[ct.bi];
         correctContactPosition(A, B, ct);
       }
     }
@@ -286,45 +286,45 @@ function resolveContactsSI(contacts, dt) {
 function resolveContactsXPBD(contacts, dt) {
   const sub = 4;
   const subDt = dt / sub;
-  const alpha = sim.compliance;
-  const isPart4 = sim.part === 4;
+  const alpha = simulation.compliance;
+  const isPart4 = simulation.part === 4;
 
   for (let s = 0; s < sub; s++) {
-    for (const b of sim.bodies) {
+    for (const b of simulation.bodies) {
       if (b.invM === 0) continue;
       b.prevX = b.x.slice();
       b.prevQ = b.q.slice();
       b.x[0] += b.v[0] * subDt;
       b.x[1] += b.v[1] * subDt;
       b.x[2] += b.v[2] * subDt;
-      b.q = quatIntegrate(b.q, b.w, subDt);
+      b.q = integrateQuaternion(b.q, b.w, subDt);
     }
 
     for (const ct of contacts) {
-      const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
-      ct.worldB = vAdd(B.x, quatRotate(B.q, ct.rBloc));
+      const A = simulation.bodies[ct.ai], B = simulation.bodies[ct.bi];
+      ct.worldB = addVectors(B.x, rotateVectorByQuat(B.q, ct.rBloc));
       storeContactPosition(A, B, ct);
     }
 
     for (const ct of contacts) ct.lambdaN = 0;
     for (let it = 0; it < 2; it++) {
       for (const ct of contacts) {
-        const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
+        const A = simulation.bodies[ct.ai], B = simulation.bodies[ct.bi];
         applyContactNormalXPBD(A, B, ct, subDt, alpha);
-        if (sim.part === 4) applyContactFrictionXPBD(A, B, ct, subDt, sim.muStatic, sim.muDynamic);
-        else                 applyContactFrictionXPBD(A, B, ct, subDt, sim.muDynamic, sim.muDynamic);
+        if (simulation.part === 4) applyContactFrictionXPBD(A, B, ct, subDt, simulation.muStatic, simulation.muDynamic);
+        else                 applyContactFrictionXPBD(A, B, ct, subDt, simulation.muDynamic, simulation.muDynamic);
       }
     }
 
-    for (const b of sim.bodies) {
+    for (const b of simulation.bodies) {
       if (b.invM === 0) continue;
-      b.v = vMul(vSub(b.x, b.prevX), 1 / subDt);
-      const dq = quatMul(b.q, quatConj(b.prevQ));
+      b.v = scaleVector(subtractVectors(b.x, b.prevX), 1 / subDt);
+      const dq = multiplyQuaternions(b.q, conjugateQuaternion(b.prevQ));
       const wAxis = [dq[1], dq[2], dq[3]];
-      const wn = vLen(wAxis);
+      const wn = vectorLength(wAxis);
       if (wn > 1e-9) {
         const ang = 2 * Math.atan2(wn, dq[0]);
-        b.w = vMul(vMul(wAxis, 1/wn), ang / subDt);
+        b.w = scaleVector(scaleVector(wAxis, 1/wn), ang / subDt);
       } else {
         b.w = [0, 0, 0];
       }
@@ -335,7 +335,7 @@ function resolveContactsXPBD(contacts, dt) {
 function getCameraPosition() {
   const cp = cos(cam.phi), sp = sin(cam.phi);
   const ct = cos(cam.theta), st = sin(cam.theta);
-  const dist = sim.cameraDistOverride || cam.dist;
+  const dist = simulation.cameraDistOverride || cam.dist;
   return {
     x: cam.tx + dist * sp * ct,
     y: cam.ty + dist * cp,
@@ -344,56 +344,56 @@ function getCameraPosition() {
 }
 
 function drawScene() {
-  for (const b of sim.bodies) drawFigure(b);
+  for (const b of simulation.bodies) drawFigure(b);
 
-  if (sim.part === 1) drawAngularMomentumVectors();
-  if (sim.part === 2) drawConstraints();
+  if (simulation.part === 1) drawAngularMomentumVectors();
+  if (simulation.part === 2) drawConstraints();
   // Contact points disabled for large scenes (3B, 4A)
 }
 
 function drawAngularMomentumVectors() {
-  const b = sim.bodies[0];
+  const b = simulation.bodies[0];
   if (!b) return;
   
   const c = b.x;
   const axisLen = 1.5;
   const axisXLen = 3.0;
   
-  const axisX = quatRotate(b.q, [1, 0, 0]);
-  const axisY = quatRotate(b.q, [0, 1, 0]);
-  const axisZ = quatRotate(b.q, [0, 0, 1]);
+  const axisX = rotateVectorByQuat(b.q, [1, 0, 0]);
+  const axisY = rotateVectorByQuat(b.q, [0, 1, 0]);
+  const axisZ = rotateVectorByQuat(b.q, [0, 0, 1]);
   
-  drawArrowWithHead(c, vAdd(c, vMul(axisX, axisXLen)), [255, 50, 50]);    // Bright red
-  drawArrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [50, 255, 50]);     // Bright green
-  drawArrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [50, 150, 255]);    // Bright blue
+  drawArrowWithHead(c, addVectors(c, scaleVector(axisX, axisXLen)), [255, 50, 50]);    // Bright red
+  drawArrowWithHead(c, addVectors(c, scaleVector(axisY, axisLen)), [50, 255, 50]);     // Bright green
+  drawArrowWithHead(c, addVectors(c, scaleVector(axisZ, axisLen)), [50, 150, 255]);    // Bright blue
   
   const L = computeAngularMomentum(b);
-  const L0 = sim.L0 || [0,0,0];
-  const Lmax = Math.max(vLen(L), vLen(L0), 0.01);
+  const L0 = simulation.L0 || [0,0,0];
+  const Lmax = Math.max(vectorLength(L), vectorLength(L0), 0.01);
   const sL = 2.5 / Lmax;
   
-  drawArrowWithHead(c, vAdd(c, vMul(L0, sL)), [100, 255, 255], 0.6);
-  drawArrowWithHead(c, vAdd(c, vMul(L,  sL)), [150, 255, 100]);
+  drawArrowWithHead(c, addVectors(c, scaleVector(L0, sL)), [100, 255, 255], 0.6);
+  drawArrowWithHead(c, addVectors(c, scaleVector(L,  sL)), [150, 255, 100]);
 }
 
 function drawArrowWithHead(a, b, color, opacity = 1.0) {
   drawCylinderBetweenPoints(a, b, 0.02, color, opacity);
   
-  const dir = vSub(b, a);
-  const len = vLen(dir);
+  const dir = subtractVectors(b, a);
+  const len = vectorLength(dir);
   if (len < 1e-6) return;
   
-  const n = vMul(dir, 1 / len);
+  const n = scaleVector(dir, 1 / len);
   const arrowSize = 0.45;
   
-  let perp1 = vCross(n, [0, 1, 0]);
-  if (vLen(perp1) < 0.1) perp1 = vCross(n, [1, 0, 0]);
-  perp1 = vNorm(perp1);
-  const perp2 = vCross(n, perp1);
+  let perp1 = crossProduct(n, [0, 1, 0]);
+  if (vectorLength(perp1) < 0.1) perp1 = crossProduct(n, [1, 0, 0]);
+  perp1 = normalizeVector(perp1);
+  const perp2 = crossProduct(n, perp1);
   
-  const arrowBase = vAdd(b, vMul(n, -arrowSize * 0.5));
-  const point1 = vAdd(arrowBase, vMul(perp1, arrowSize * 0.3));
-  const point2 = vAdd(arrowBase, vMul(perp2, arrowSize * 0.3));
+  const arrowBase = addVectors(b, scaleVector(n, -arrowSize * 0.5));
+  const point1 = addVectors(arrowBase, scaleVector(perp1, arrowSize * 0.3));
+  const point2 = addVectors(arrowBase, scaleVector(perp2, arrowSize * 0.3));
   
   push();
     noStroke();
@@ -402,28 +402,28 @@ function drawArrowWithHead(a, b, color, opacity = 1.0) {
     beginShape(TRIANGLES);
     vertex(b[0], b[1], b[2]); vertex(point1[0], point1[1], point1[2]); vertex(point2[0], point2[1], point2[2]);
     vertex(b[0], b[1], b[2]); vertex(point2[0], point2[1], point2[2]); 
-    vertex(vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[0], vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[1], vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[2]);
+    vertex(addVectors(arrowBase, scaleVector(perp1, -arrowSize * 0.3))[0], addVectors(arrowBase, scaleVector(perp1, -arrowSize * 0.3))[1], addVectors(arrowBase, scaleVector(perp1, -arrowSize * 0.3))[2]);
     endShape();
   pop();
 }
 
 function drawCylinderBetweenPoints(a, b, radius, color, opacity = 1.0) {
-  const dir = vSub(b, a);
-  const len = vLen(dir);
+  const dir = subtractVectors(b, a);
+  const len = vectorLength(dir);
   if (len < 1e-6) return;
 
   const mid = [(a[0]+b[0])*0.5, (a[1]+b[1])*0.5, (a[2]+b[2])*0.5];
-  const n = vMul(dir, 1 / len);
+  const n = scaleVector(dir, 1 / len);
   const up = [0, 1, 0];
-  const axisV = vCross(up, n);
-  const an = vLen(axisV);
+  const axisV = crossProduct(up, n);
+  const an = vectorLength(axisV);
 
   push();
     translate(mid[0], mid[1], mid[2]);
     if (an > 1e-6) {
-      const ang = Math.atan2(an, vDot(up, n));
+      const ang = Math.atan2(an, dotProduct(up, n));
       rotate(ang, [axisV[0]/an, axisV[1]/an, axisV[2]/an]);
-    } else if (vDot(up, n) < 0) {
+    } else if (dotProduct(up, n) < 0) {
       rotate(Math.PI, [1, 0, 0]);
     }
     noStroke();
@@ -433,11 +433,11 @@ function drawCylinderBetweenPoints(a, b, radius, color, opacity = 1.0) {
 }
 
 function drawConstraints() {
-  for (const s of sim.springs) {
-    const A = sim.bodies[s.figureIdx];
-    const pA = vAdd(A.x, quatRotate(A.q, s.rLocal));
+  for (const s of simulation.springs) {
+    const A = simulation.bodies[s.figureIdx];
+    const pA = addVectors(A.x, rotateVectorByQuat(A.q, s.rLocal));
     const pB = s.pWorld;
-    const dLen = vLen(vSub(pA, pB));
+    const dLen = vectorLength(subtractVectors(pA, pB));
     const stretch = Math.abs(dLen - s.restLen) / s.restLen;
     
     const col = [
@@ -455,11 +455,11 @@ function drawConstraints() {
       translate(pB[0], pB[1], pB[2]); sphere(0.1, 16, 12);
     pop();
   }
-  for (const c of sim.constraints) {
-    const A = sim.bodies[c.a], B = sim.bodies[c.b];
-    const pA = vAdd(A.x, quatRotate(A.q, c.rAloc));
-    const pB = vAdd(B.x, quatRotate(B.q, c.rBloc));
-    const err = Math.abs(vLen(vSub(pA, pB)) - c.restLen);
+  for (const c of simulation.constraints) {
+    const A = simulation.bodies[c.a], B = simulation.bodies[c.b];
+    const pA = addVectors(A.x, rotateVectorByQuat(A.q, c.rAloc));
+    const pB = addVectors(B.x, rotateVectorByQuat(B.q, c.rBloc));
+    const err = Math.abs(vectorLength(subtractVectors(pA, pB)) - c.restLen);
     
     const col = [
       100 + Math.min(100, err * 2000),
@@ -501,14 +501,14 @@ function mouseReleased(event) {
 
 function mouseWheel(e) {
   cam.dist = constrain(cam.dist + e.delta * 0.01, 3, 80);
-  if (sim.cameraDistOverride !== null && sim.cameraDistOverride !== undefined) {
-    sim.cameraDistOverride = constrain(sim.cameraDistOverride + e.delta * 0.01, 3, 80);
+  if (simulation.cameraDistOverride !== null && simulation.cameraDistOverride !== undefined) {
+    simulation.cameraDistOverride = constrain(simulation.cameraDistOverride + e.delta * 0.01, 3, 80);
   }
   return false;
 }
 
 function keyPressed() {
-  if (key === 'r' || key === 'R') loadScene(sim.sceneId);
+  if (key === 'r' || key === 'R') loadScene(simulation.sceneId);
 }
 
 function windowResized() {

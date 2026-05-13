@@ -1,6 +1,6 @@
 function makeFigure(opts) {
   const x = opts.x || [0, 0, 0];
-  const q = quatNormalize(opts.q || [1, 0, 0, 0]);
+  const q = normalizeQuaternion(opts.q || [1, 0, 0, 0]);
   const v = opts.v || [0, 0, 0];
   const w = opts.w || [0, 0, 0];
   const halfExtents = opts.halfExtents || [0.5, 0.5, 0.5];
@@ -14,7 +14,7 @@ function makeFigure(opts) {
     Ifigure = [0, 0, 0];
     IfigureInv = [0, 0, 0];
   } else {
-    Ifigure = boxInertia(m, halfExtents);
+    Ifigure = computeBoxInertia(m, halfExtents);
     IfigureInv = [1/Ifigure[0], 1/Ifigure[1], 1/Ifigure[2]];
   }
 
@@ -36,7 +36,7 @@ function getFigureVerticesWorld(figure) {
   for (let sx = -1; sx <= 1; sx += 2)
   for (let sy = -1; sy <= 1; sy += 2)
   for (let sz = -1; sz <= 1; sz += 2)
-    verts.push(vAdd(figure.x, quatRotate(figure.q, [sx*h[0], sy*h[1], sz*h[2]])));
+    verts.push(addVectors(figure.x, rotateVectorByQuat(figure.q, [sx*h[0], sy*h[1], sz*h[2]])));
   return verts;
 }
 
@@ -74,21 +74,21 @@ function drawFigure(figure) {
 }
 
 function computeAngularMomentum(figure) {
-  const Iw = worldInertia(figure);
-  return mat3MulVec(Iw, figure.w);
+  const Iw = transformToWorldInertia(figure);
+  return multiplyMatrix3Vector(Iw, figure.w);
 }
 
 function computeKineticEnergy(figure) {
   if (figure.invM === 0) return 0;
-  const lin = 0.5 * figure.m * vDot(figure.v, figure.v);
-  const Iw  = worldInertia(figure);
-  const Iww = mat3MulVec(Iw, figure.w);
-  const rot = 0.5 * vDot(figure.w, Iww);
+  const lin = 0.5 * figure.m * dotProduct(figure.v, figure.v);
+  const Iw  = transformToWorldInertia(figure);
+  const Iww = multiplyMatrix3Vector(Iw, figure.w);
+  const rot = 0.5 * dotProduct(figure.w, Iww);
   return lin + rot;
 }
 
 function getLocalAxesMatrix(figure) {
-  const R = quatToMat3(figure.q);
+  const R = quaternionToMatrix3(figure.q);
   return [
     [R[0], R[3], R[6]],
     [R[1], R[4], R[7]],
@@ -98,15 +98,15 @@ function getLocalAxesMatrix(figure) {
 
 function projectBoxOnAxis(figure, axis, axes) {
   const h = figure.halfExtents;
-  return Math.abs(vDot(axes[0], axis)) * h[0] +
-         Math.abs(vDot(axes[1], axis)) * h[1] +
-         Math.abs(vDot(axes[2], axis)) * h[2];
+  return Math.abs(dotProduct(axes[0], axis)) * h[0] +
+         Math.abs(dotProduct(axes[1], axis)) * h[1] +
+         Math.abs(dotProduct(axes[2], axis)) * h[2];
 }
 
 function detectBoxCollisionSAT(A, B) {
   const axesA = getLocalAxesMatrix(A);
   const axesB = getLocalAxesMatrix(B);
-  const t = vSub(B.x, A.x);
+  const t = subtractVectors(B.x, A.x);
 
   let bestDepth = Infinity;
   let bestAxis = null;
@@ -114,19 +114,19 @@ function detectBoxCollisionSAT(A, B) {
   let bestFaceIdx = -1;
 
   const tryAxis = (axis, faceIdx, isFromA) => {
-    const len2 = vDot(axis, axis);
+    const len2 = dotProduct(axis, axis);
     if (len2 < 1e-9) return true;
     const inv = 1 / Math.sqrt(len2);
-    const ax = vMul(axis, inv);
+    const ax = scaleVector(axis, inv);
     const rA = projectBoxOnAxis(A, ax, axesA);
     const rB = projectBoxOnAxis(B, ax, axesB);
-    const dist = Math.abs(vDot(t, ax));
+    const dist = Math.abs(dotProduct(t, ax));
     const overlap = rA + rB - dist;
     if (overlap < 0) return false;
     if (overlap < bestDepth) {
       bestDepth = overlap;
-      const dir = vDot(t, ax) >= 0 ? 1 : -1;
-      bestAxis = vMul(ax, dir);
+      const dir = dotProduct(t, ax) >= 0 ? 1 : -1;
+      bestAxis = scaleVector(ax, dir);
       bestIsFromA = isFromA;
       bestFaceIdx = faceIdx;
     }
@@ -137,7 +137,7 @@ function detectBoxCollisionSAT(A, B) {
   for (let i = 0; i < 3; i++) if (!tryAxis(axesB[i], i, false)) return null;
   for (let i = 0; i < 3; i++)
     for (let j = 0; j < 3; j++) {
-      const c = vCross(axesA[i], axesB[j]);
+      const c = crossProduct(axesA[i], axesB[j]);
       if (!tryAxis(c, -1, true)) return null;
     }
 
@@ -151,7 +151,7 @@ function detectBoxCollisionSAT(A, B) {
     if (isPointInsideBox(v.world, B)) {
       contacts.push({
         rAloc: v.local,
-        rBloc: quatRotateInv(B.q, vSub(v.world, B.x)),
+        rBloc: rotateVectorByQuatInv(B.q, subtractVectors(v.world, B.x)),
         n,
         depth: bestDepth,
       });
@@ -160,7 +160,7 @@ function detectBoxCollisionSAT(A, B) {
   for (const v of vertsB) {
     if (isPointInsideBox(v.world, A)) {
       contacts.push({
-        rAloc: quatRotateInv(A.q, vSub(v.world, A.x)),
+        rAloc: rotateVectorByQuatInv(A.q, subtractVectors(v.world, A.x)),
         rBloc: v.local,
         n,
         depth: bestDepth,
@@ -170,8 +170,8 @@ function detectBoxCollisionSAT(A, B) {
 
   if (contacts.length === 0) {
     contacts.push({
-      rAloc: quatRotateInv(A.q, vMul(n,  A.halfExtents[0])),
-      rBloc: quatRotateInv(B.q, vMul(n, -B.halfExtents[0])),
+      rAloc: rotateVectorByQuatInv(A.q, scaleVector(n,  A.halfExtents[0])),
+      rBloc: rotateVectorByQuatInv(B.q, scaleVector(n, -B.halfExtents[0])),
       n,
       depth: bestDepth,
     });
@@ -181,7 +181,7 @@ function detectBoxCollisionSAT(A, B) {
   for (const c of contacts) {
     let dup = false;
     for (const e of final) {
-      if (vLen(vSub(quatRotate(A.q, c.rAloc), quatRotate(A.q, e.rAloc))) < 1e-3) { dup = true; break; }
+      if (vectorLength(subtractVectors(rotateVectorByQuat(A.q, c.rAloc), rotateVectorByQuat(A.q, e.rAloc))) < 1e-3) { dup = true; break; }
     }
     if (!dup) final.push(c);
     if (final.length >= 4) break;
@@ -196,20 +196,20 @@ function getVerticesWithLocalAndWorld(figure) {
   for (let sy = -1; sy <= 1; sy += 2)
   for (let sz = -1; sz <= 1; sz += 2) {
     const local = [sx*h[0], sy*h[1], sz*h[2]];
-    out.push({ local, world: vAdd(figure.x, quatRotate(figure.q, local)) });
+    out.push({ local, world: addVectors(figure.x, rotateVectorByQuat(figure.q, local)) });
   }
   return out;
 }
 
 function isPointInsideBox(p, figure) {
-  const local = quatRotateInv(figure.q, vSub(p, figure.x));
+  const local = rotateVectorByQuatInv(figure.q, subtractVectors(p, figure.x));
   return Math.abs(local[0]) <= figure.halfExtents[0] + 1e-4 &&
          Math.abs(local[1]) <= figure.halfExtents[1] + 1e-4 &&
          Math.abs(local[2]) <= figure.halfExtents[2] + 1e-4;
 }
 
 function getPenetrationDepthAlongAxis(p, figure, n, _) {
-  const local = quatRotateInv(figure.q, vSub(p, figure.x));
+  const local = rotateVectorByQuatInv(figure.q, subtractVectors(p, figure.x));
   const h = figure.halfExtents;
   const dx = h[0] - Math.abs(local[0]);
   const dy = h[1] - Math.abs(local[1]);
