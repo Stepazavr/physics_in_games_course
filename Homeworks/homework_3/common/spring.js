@@ -1,4 +1,4 @@
-function applySpringForce(figure, spring, dt) {
+function applyExplicitSpringForce(figure, spring, dt) {
   if (figure.invM === 0) return;
   const r_world_off = rotateVectorByQuat(figure.q, spring.rLocal);
   const p = addVectors(figure.x, r_world_off);
@@ -24,7 +24,7 @@ function applySpringForce(figure, spring, dt) {
   figure.w[2] += dw[2];
 }
 
-function solveSpringSoft(figure, spring, dt) {
+function solveSpringConstraintSoft(figure, spring, dt) {
   if (figure.invM === 0) return;
   const r_world_off = rotateVectorByQuat(figure.q, spring.rLocal);
   const p = addVectors(figure.x, r_world_off);

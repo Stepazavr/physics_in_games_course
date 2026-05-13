@@ -105,14 +105,14 @@ function updateConstraints(dt) {
   }
 
   if (kind === 'springForce') {
-    for (const s of simulation.springs) applySpringForce(simulation.bodies[s.figureIdx], s, dt);
+    for (const s of simulation.springs) applyExplicitSpringForce(simulation.bodies[s.figureIdx], s, dt);
     for (const b of simulation.bodies) integrateAngularVelocity(b, dt);
     for (const b of simulation.bodies) integratePosition(b, dt);
   } else if (kind === 'springSoft') {
     for (const b of simulation.bodies) integrateAngularVelocity(b, dt);
     for (const s of simulation.springs) s.lambdaAccum = 0;
     for (let it = 0; it < simulation.iterations; it++)
-      for (const s of simulation.springs) solveSpringSoft(simulation.bodies[s.figureIdx], s, dt);
+      for (const s of simulation.springs) solveSpringConstraintSoft(simulation.bodies[s.figureIdx], s, dt);
     for (const b of simulation.bodies) integratePosition(b, dt);
   } else if (kind === 'distXPBD') {
     const sub = 4;
