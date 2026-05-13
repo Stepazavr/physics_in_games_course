@@ -1,6 +1,6 @@
 function _scenePart2(kind) {
   if (kind === 'springForce' || kind === 'springSoft') {
-    const b = makeBody({
+    const b = makeFigure({
       x: [0, 1.0, 0],
       halfExtents: [1.5, 0.5, 0.25],
       m: 2.0, color: BRIGHT_COLORS[0].slice(),
@@ -18,11 +18,11 @@ function _scenePart2(kind) {
       lambdaAccum: 0,
     });
   } else {
-    const A = makeBody({
+    const A = makeFigure({
       x: [-2.0, 2.5, 0], halfExtents: [1.5, 0.5, 0.25],
       m: 2.0, color: BRIGHT_COLORS[0].slice(),
     });
-    const B = makeBody({
+    const B = makeFigure({
       x: [2.0, 2.5, 0], halfExtents: [1.5, 0.5, 0.25],
       m: 2.0, color: BRIGHT_COLORS[1].slice(),
     });
@@ -43,7 +43,7 @@ function _scenePart2(kind) {
       lambdaAccum: 0, lambdaPosAccum: 0,
     });
   }
-  const floor = makeBody({
+  const floor = makeFigure({
     x: [0, -3, 0],
     halfExtents: [8, 0.2, 8],
     static: true, color: [60, 70, 80],

@@ -81,7 +81,7 @@ function simStep() {
   else                     _stepPart34(dt);
 
   if (sim.part === 1 && sim.bodies.length > 0) {
-    const E = bodyKineticEnergy(sim.bodies[0]);
+    const E = computeKineticEnergy(sim.bodies[0]);
     const ratio = sim.E0 > 1e-9 ? E / sim.E0 : 1;
     sim.energyHistory.push(ratio);
     if (sim.energyHistory.length > 600) sim.energyHistory.shift();
@@ -214,7 +214,7 @@ function _stepPart34(dt) {
     b.v[1] -= sim.gravity * dt;
   }
 
-  for (const b of sim.bodies) updateAABB(b);
+  for (const b of sim.bodies) updateBoundingBox(b);
 
   let pairs;
   if (sim.broadphase === 'grid')      pairs = broadphaseSpatialGrid(sim.bodies, 1.5);
@@ -228,7 +228,7 @@ function _stepPart34(dt) {
   const contacts = [];
   for (const [i, j] of pairs) {
     const A = sim.bodies[i], B = sim.bodies[j];
-    const list = satBoxBox(A, B);
+    const list = detectBoxCollisionSAT(A, B);
     if (!list) continue;
     for (const c of list) {
       contacts.push({
@@ -344,7 +344,7 @@ function _camEye() {
 }
 
 function _drawScene() {
-  for (const b of sim.bodies) drawBody(b);
+  for (const b of sim.bodies) drawFigure(b);
 
   if (sim.part === 1) _drawAngularMomentumArrows();
   if (sim.part === 2) _drawJoints();
@@ -367,7 +367,7 @@ function _drawAngularMomentumArrows() {
   _arrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [50, 255, 50]);     // Bright green
   _arrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [50, 150, 255]);    // Bright blue
   
-  const L = bodyAngularMomentum(b);
+  const L = computeAngularMomentum(b);
   const L0 = sim.L0 || [0,0,0];
   const Lmax = Math.max(vLen(L), vLen(L0), 0.01);
   const sL = 2.5 / Lmax;

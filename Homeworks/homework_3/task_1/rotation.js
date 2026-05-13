@@ -12,7 +12,7 @@ function freeRotStep(body, dt, mode) {
 }
 
 function _rot1A(body, dt) {
-  if (!body._L) body._L = bodyAngularMomentum(body);
+  if (!body._L) body._L = computeAngularMomentum(body);
   const Iw_inv = worldInertiaInv(body);
   const w = mat3MulVec(Iw_inv, body._L);
   body.w = w;

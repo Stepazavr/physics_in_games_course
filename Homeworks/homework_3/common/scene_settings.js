@@ -63,8 +63,8 @@ function loadScene(id) {
 
   if (def.part === 1) {
     const b = sim.bodies[0];
-    sim.L0 = bodyAngularMomentum(b);
-    sim.E0 = bodyKineticEnergy(b);
+    sim.L0 = computeAngularMomentum(b);
+    sim.E0 = computeKineticEnergy(b);
     b._L = sim.L0.slice();
   }
 }

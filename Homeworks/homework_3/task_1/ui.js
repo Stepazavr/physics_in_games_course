@@ -68,8 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function updateMetrics() {
   if (sim.bodies.length > 0 && sim.part === 1) {
     const b = sim.bodies[0];
-    const L = bodyAngularMomentum(b);
-    const E = bodyKineticEnergy(b);
+    const L = computeAngularMomentum(b);
+    const E = computeKineticEnergy(b);
     const L0 = sim.L0 || [0,0,0];
     const omega = b.w || [0,0,0];
     const omegaLen = vLen(omega);
