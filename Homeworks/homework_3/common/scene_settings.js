@@ -68,3 +68,62 @@ function loadScene(id) {
     b._L = sim.L0.slice();
   }
 }
+
+// ============== Common UI Functions (shared across all tasks) ==============
+
+function setupSlider(slId, lblId, setter, fmt) {
+  const sl = document.getElementById(slId);
+  if (!sl) return;
+  sl.addEventListener('input', () => {
+    const v = parseFloat(sl.value);
+    const lbl = document.getElementById(lblId);
+    if (lbl) lbl.textContent = fmt(v);
+    setter(v);
+  });
+}
+
+function _set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function initCommonUIElements() {
+  let pausedState = false;
+  const pauseBtn = document.getElementById('pause-btn');
+  const resetBtn = document.getElementById('reset-btn');
+
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', function() {
+      pausedState = !pausedState;
+      sim.paused = pausedState;
+      this.classList.toggle('active', pausedState);
+      this.textContent = sim.paused ? '▶ Resume' : '⏸ Pause';
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      loadScene(sim.sceneId);
+      if (typeof _refreshBroadphaseEnabled === 'function') {
+        _refreshBroadphaseEnabled(SCENES[sim.sceneId]);
+      }
+      sim.paused = pausedState;
+      if (pauseBtn) {
+        if (pausedState) {
+          pauseBtn.classList.add('active');
+          pauseBtn.textContent = '▶ Resume';
+        } else {
+          pauseBtn.classList.remove('active');
+          pauseBtn.textContent = '⏸ Pause';
+        }
+      }
+    });
+  }
+
+  return pausedState;
+}
+
+// Default empty updateMetrics - override in task-specific scene.js
+function updateMetrics() {
+  // Override in task-specific files
+}

@@ -175,75 +175,7 @@
 <script src="optimization.js"></script>
 <script src="../common/algorithms.js"></script>
 <script src="../common/main.js"></script>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    let pausedState = false;
-    
-    const pauseBtn = document.getElementById('pause-btn');
-    
-    pauseBtn.addEventListener('click', function() {
-      pausedState = !pausedState;
-      sim.paused = pausedState;
-      this.classList.toggle('active', pausedState);
-      this.textContent = sim.paused ? '▶ Resume' : '⏸ Pause';
-    });
-    
-    const resetBtn = document.getElementById('reset-btn');
-    resetBtn.addEventListener('click', function() {
-      loadScene(sim.sceneId);
-      sim.paused = pausedState;
-      if (pausedState) {
-        pauseBtn.classList.add('active');
-        pauseBtn.textContent = '▶ Resume';
-      } else {
-        pauseBtn.classList.remove('active');
-        pauseBtn.textContent = '⏸ Pause';
-      }
-    });
-    
-    function setupSlider(slId, lblId, setter, fmt) {
-      const sl = document.getElementById(slId);
-      if (!sl) return;
-      sl.addEventListener('input', () => {
-        const v = parseFloat(sl.value);
-        const lbl = document.getElementById(lblId);
-        if (lbl) lbl.textContent = fmt(v);
-        setter(v);
-      });
-    }
-    
-    setupSlider('s-iter', 'v-iter', v => sim.iterations = Math.round(v), v => String(Math.round(v)));
-    setupSlider('s-comp', 'v-comp', v => sim.compliance = v, v => v.toFixed(4));
-    setupSlider('s-beta', 'v-beta', v => sim.baumgarteBeta = v, v => v.toFixed(2));
-    setupSlider('s-mus', 'v-mus', v => sim.muStatic = v, v => v.toFixed(2));
-    setupSlider('s-mud', 'v-mud', v => sim.muDynamic = v, v => v.toFixed(2));
-    setupSlider('s-rest', 'v-rest', v => sim.restitution = v, v => v.toFixed(2));
-    setupSlider('s-grav', 'v-grav', v => sim.gravity = v, v => v.toFixed(2));
-    
-    // Ensure initial scene is loaded and not paused
-    if (sim && sim.sceneId) {
-      loadScene(sim.sceneId);
-      sim.paused = false;
-      pausedState = false;
-      pauseBtn.textContent = '⏸ Pause';
-      pauseBtn.classList.remove('active');
-    }
-  });
-  
-  // Override updateMetrics to show only Bodies count (excluding static bodies like floor and walls)
-  function updateMetrics() {
-    if (sim.part === 4) {
-      const dynamicBodies = sim.bodies.filter(b => !b.isStatic).length;
-      _set('m-bodies', String(dynamicBodies));
-    }
-  }
-  
-  function _set(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-  }
-</script>
+<script src="ui.js"></script>
 
 </body>
 </html>
