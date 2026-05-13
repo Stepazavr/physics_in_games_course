@@ -12,7 +12,7 @@ const SCENES = {
   '3A': { part: 3, label: '3A · 10 кубиков (Bruteforce)',     kind: 'stack' },
   '3B': { part: 3, label: '3B · 1000 кубиков (SpatialGrid)',   kind: 'pile' },
 
-  '4A': { part: 4, label: '4A · varied sizes', kind: 'varied' },
+  '4A': { part: 4, label: '4A', kind: 'varied' },
 };
 
 // Palette of 10 bright colors for cubes
@@ -215,23 +215,37 @@ function _scenePile() {
 }
 
 function _sceneVaried() {
-  const floor = makeBody({ x: [0, 0, 0], halfExtents: [10, 0.2, 10], static: true });
+  const floor = makeBody({ x: [0, 0, 0], halfExtents: [8, 0.5, 8], static: true, color: [60, 70, 80] });
   sim.bodies.push(floor);
-  sim.bodies.push(makeBody({ x: [ 10, 4, 0], halfExtents: [0.4, 4, 10], static: true }));
-  sim.bodies.push(makeBody({ x: [-10, 4, 0], halfExtents: [0.4, 4, 10], static: true }));
-  sim.bodies.push(makeBody({ x: [0, 4,  10], halfExtents: [10, 4, 0.4], static: true }));
-  sim.bodies.push(makeBody({ x: [0, 4, -10], halfExtents: [10, 4, 0.4], static: true }));
+  
+  // Invisible walls (marked with invisible flag)
+  const wallH = 4;
+  const wall1 = makeBody({ x: [ 8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  wall1.invisible = true;
+  sim.bodies.push(wall1);
+  const wall2 = makeBody({ x: [-8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  wall2.invisible = true;
+  sim.bodies.push(wall2);
+  const wall3 = makeBody({ x: [0, wallH,  8.4], halfExtents: [8, wallH, 0.4], static: true });
+  wall3.invisible = true;
+  sim.bodies.push(wall3);
+  const wall4 = makeBody({ x: [0, wallH, -8.4], halfExtents: [8, wallH, 0.4], static: true });
+  wall4.invisible = true;
+  sim.bodies.push(wall4);
 
-  for (let i = 0; i < 400; i++) {
+  const COUNT = 1000;
+  for (let i = 0; i < COUNT; i++) {
     const s = 0.15 + Math.random() * 0.7;
     const hy = s*(0.5+Math.random());
+    const x = (Math.random() - 0.5) * 14;
+    const z = (Math.random() - 0.5) * 14;
+    const y = 1.5 + hy + Math.random() * 18;
+    const colorIdx = i % BRIGHT_COLORS.length;
     const b = makeBody({
-      x: [(Math.random()-0.5)*16,
-          1.5 + hy + Math.random()*14,
-          (Math.random()-0.5)*16],
+      x: [x, y, z],
       halfExtents: [s, hy, s*(0.5+Math.random())],
       m: s*s*s*4,
-      color: [80 + Math.random()*160, 80 + Math.random()*160, 80 + Math.random()*160],
+      color: BRIGHT_COLORS[colorIdx].slice(),
     });
     b.q = quatFromAxisAngle(vNorm([Math.random()-0.5, Math.random()-0.5, Math.random()-0.5]),
                             Math.random() * Math.PI);
