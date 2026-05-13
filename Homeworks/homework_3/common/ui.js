@@ -105,6 +105,13 @@ function _applySceneDefaults(sc) {
   const def = { '3A': 'brute', '3B': 'grid', '4A': 'sap' };
   if (def[sc]) _setBroadButton(def[sc]);
   
+  // Adjust camera distance for large scenes
+  if (sc === '3B' || sc === '4A') {
+    sim.cameraDistOverride = 28;
+  } else {
+    sim.cameraDistOverride = null;
+  }
+  
   if (sc === '2A' || sc === '2B') {
     sim.part2Kind = sc;
   } else if (sc === '2C') {

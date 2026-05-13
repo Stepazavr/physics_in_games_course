@@ -335,10 +335,11 @@ function _solveXPBD(contacts, dt) {
 function _camEye() {
   const cp = cos(cam.phi), sp = sin(cam.phi);
   const ct = cos(cam.theta), st = sin(cam.theta);
+  const dist = sim.cameraDistOverride || cam.dist;
   return {
-    x: cam.tx + cam.dist * sp * ct,
-    y: cam.ty + cam.dist * cp,
-    z: cam.tz + cam.dist * sp * st,
+    x: cam.tx + dist * sp * ct,
+    y: cam.ty + dist * cp,
+    z: cam.tz + dist * sp * st,
   };
 }
 
@@ -347,7 +348,7 @@ function _drawScene() {
 
   if (sim.part === 1) _drawAngularMomentumArrows();
   if (sim.part === 2) _drawJoints();
-  if (sim.part >= 3 && sim.sceneId !== '3A') _drawContacts();
+  // Contact points disabled for large scenes (3B, 4A)
 }
 
 function _drawAngularMomentumArrows() {
@@ -549,6 +550,9 @@ function mouseReleased(event) {
 
 function mouseWheel(e) {
   cam.dist = constrain(cam.dist + e.delta * 0.01, 3, 80);
+  if (sim.cameraDistOverride !== null && sim.cameraDistOverride !== undefined) {
+    sim.cameraDistOverride = constrain(sim.cameraDistOverride + e.delta * 0.01, 3, 80);
+  }
   return false;
 }
 

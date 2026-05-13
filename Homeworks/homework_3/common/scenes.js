@@ -145,23 +145,23 @@ function _scenePart2(kind) {
 function _sceneStack() {
   const floor = makeBody({
     x: [0, 0, 0],
-    halfExtents: [6, 0.20, 6],
+    halfExtents: [6, 0.2, 6],
     static: true, color: [60, 70, 80],
   });
   sim.bodies.push(floor);
   
   // Invisible walls (marked with invisible flag)
   const wallH = 3;
-  const wall1 = makeBody({ x: [ 6.0, wallH, 0], halfExtents: [0.4, wallH, 6], static: true });
+  const wall1 = makeBody({ x: [ 6.2, 0.2 + wallH, 0], halfExtents: [0.2, wallH, 6], static: true });
   wall1.invisible = true;
   sim.bodies.push(wall1);
-  const wall2 = makeBody({ x: [-6.0, wallH, 0], halfExtents: [0.4, wallH, 6], static: true });
+  const wall2 = makeBody({ x: [-6.2, 0.2 + wallH, 0], halfExtents: [0.2, wallH, 6], static: true });
   wall2.invisible = true;
   sim.bodies.push(wall2);
-  const wall3 = makeBody({ x: [0, wallH,  6.0], halfExtents: [6, wallH, 0.4], static: true });
+  const wall3 = makeBody({ x: [0, 0.2 + wallH,  6.2], halfExtents: [6, wallH, 0.2], static: true });
   wall3.invisible = true;
   sim.bodies.push(wall3);
-  const wall4 = makeBody({ x: [0, wallH, -6.4], halfExtents: [6, wallH, 0.4], static: true });
+  const wall4 = makeBody({ x: [0, 0.2 + wallH, -6.2], halfExtents: [6, wallH, 0.2], static: true });
   wall4.invisible = true;
   sim.bodies.push(wall4);
   
@@ -180,19 +180,19 @@ function _sceneStack() {
 }
 
 function _scenePile() {
-  const floor = makeBody({ x: [0, 0, 0], halfExtents: [8, 0.2, 8], static: true });
+  const floor = makeBody({ x: [0, 0, 0], halfExtents: [8, 0.2, 8], static: true, color: [60, 70, 80] });
   sim.bodies.push(floor);
   const wallH = 4;
-  const wall1 = makeBody({ x: [ 8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  const wall1 = makeBody({ x: [ 8.2, 0.2 + wallH, 0], halfExtents: [0.2, wallH, 8], static: true });
   wall1.invisible = true;
   sim.bodies.push(wall1);
-  const wall2 = makeBody({ x: [-8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  const wall2 = makeBody({ x: [-8.2, 0.2 + wallH, 0], halfExtents: [0.2, wallH, 8], static: true });
   wall2.invisible = true;
   sim.bodies.push(wall2);
-  const wall3 = makeBody({ x: [0, wallH,  8.4], halfExtents: [8, wallH, 0.4], static: true });
+  const wall3 = makeBody({ x: [0, 0.2 + wallH,  8.2], halfExtents: [8, wallH, 0.2], static: true });
   wall3.invisible = true;
   sim.bodies.push(wall3);
-  const wall4 = makeBody({ x: [0, wallH, -8.4], halfExtents: [8, wallH, 0.4], static: true });
+  const wall4 = makeBody({ x: [0, 0.2 + wallH, -8.2], halfExtents: [8, wallH, 0.2], static: true });
   wall4.invisible = true;
   sim.bodies.push(wall4);
 
@@ -204,7 +204,7 @@ function _scenePile() {
     const colorIdx = i % BRIGHT_COLORS.length;
     const b = makeBody({
       x: [x, y, z],
-      halfExtents: [0.25, 0.25, 0.25],
+      halfExtents: [0.45, 0.45, 0.45],
       m: 1,
       color: BRIGHT_COLORS[colorIdx].slice(),
     });
@@ -215,21 +215,21 @@ function _scenePile() {
 }
 
 function _sceneVaried() {
-  const floor = makeBody({ x: [0, 0, 0], halfExtents: [8, 0.5, 8], static: true, color: [60, 70, 80] });
+  const floor = makeBody({ x: [0, 0, 0], halfExtents: [8, 0.2, 8], static: true, color: [60, 70, 80] });
   sim.bodies.push(floor);
   
   // Invisible walls (marked with invisible flag)
   const wallH = 4;
-  const wall1 = makeBody({ x: [ 8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  const wall1 = makeBody({ x: [ 8.2, 0.2 + wallH, 0], halfExtents: [0.2, wallH, 8], static: true });
   wall1.invisible = true;
   sim.bodies.push(wall1);
-  const wall2 = makeBody({ x: [-8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  const wall2 = makeBody({ x: [-8.2, 0.2 + wallH, 0], halfExtents: [0.2, wallH, 8], static: true });
   wall2.invisible = true;
   sim.bodies.push(wall2);
-  const wall3 = makeBody({ x: [0, wallH,  8.4], halfExtents: [8, wallH, 0.4], static: true });
+  const wall3 = makeBody({ x: [0, 0.2 + wallH,  8.2], halfExtents: [8, wallH, 0.2], static: true });
   wall3.invisible = true;
   sim.bodies.push(wall3);
-  const wall4 = makeBody({ x: [0, wallH, -8.4], halfExtents: [8, wallH, 0.4], static: true });
+  const wall4 = makeBody({ x: [0, 0.2 + wallH, -8.2], halfExtents: [8, wallH, 0.2], static: true });
   wall4.invisible = true;
   sim.bodies.push(wall4);
 
