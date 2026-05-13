@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rigid Body Simulator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      display: flex; background: #0d0d1a; color: #ccd;
+      font-family: 'Courier New', monospace; font-size: 12px;
+      overflow: hidden; height: 100vh;
+    }
+    #sidebar {
+      width: 260px; min-width: 260px; height: 100vh; overflow-y: auto;
+      background: #111120; border-right: 1px solid #222240;
+      padding: 8px 10px; flex-shrink: 0;
+    }
+    h2 {
+      font-size: 10px; color: #5070a0; margin: 10px 0 4px;
+      text-transform: uppercase; letter-spacing: 1px;
+      border-bottom: 1px solid #1e1e36; padding-bottom: 2px;
+    }
+    .btn-group { display: flex; gap: 3px; flex-wrap: wrap; margin: 3px 0; }
+    .btn {
+      padding: 3px 8px; background: #181828; border: 1px solid #303050;
+      color: #778; cursor: pointer; font-family: inherit; font-size: 11px;
+      border-radius: 2px;
+    }
+    .btn:hover  { background: #222240; border-color: #4455aa; color: #aab; }
+    .btn.active { background: #1a2850; border-color: #3377ee; color: #88bbff; }
+    .btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+    .ctrl { margin: 5px 0; }
+    .ctrl label { display: block; color: #667; font-size: 11px; margin-bottom: 1px; }
+    .ctrl input[type=range] { width: 100%; accent-color: #4488ff; }
+    .metric { display: flex; justify-content: space-between;
+              color: #2a9a4a; font-size: 11px; margin: 2px 0; }
+    .metric span { color: #44cc66; }
+    #canvas-container { flex: 1; height: 100vh; overflow: hidden; }
+    canvas { display: block; }
+    #hint {
+      position: absolute; bottom: 8px; left: 270px;
+      color: #334; font-size: 11px; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="sidebar">
+  <h2>Part</h2>
+  <div class="btn-group" id="part-btns">
+    <button class="btn active" data-val="1">1</button>
+    <button class="btn"        data-val="2">2</button>
+    <button class="btn"        data-val="3">3</button>
+    <button class="btn"        data-val="4">4</button>
+  </div>
+
+  <h2>Scene</h2>
+  <div class="btn-group" id="scene-btns"></div>
+
+  <div id="sec-solver">
+    <h2>Solver</h2>
+    <div class="btn-group" id="solver-btns">
+      <button class="btn active" data-val="si">Sequential Impulses</button>
+      <button class="btn"        data-val="xpbd">XPBD</button>
+    </div>
+  </div>
+
+  <div id="sec-poststab">
+    <h2>Post-stab (SI)</h2>
+    <div class="btn-group" id="poststab-btns">
+      <button class="btn active" data-val="baumgarte">Baumgarte</button>
+      <button class="btn"        data-val="nlgs">NL-GS</button>
+      <button class="btn"        data-val="soft">Soft</button>
+    </div>
+  </div>
+
+  <div id="sec-broad">
+    <h2>Broadphase</h2>
+    <div class="btn-group" id="broad-btns">
+      <button class="btn active" data-val="brute">Brute</button>
+      <button class="btn"        data-val="grid">SpatialGrid</button>
+      <button class="btn"        data-val="sap">SAP</button>
+      <button class="btn"        data-val="lbvh">LBVH</button>
+    </div>
+  </div>
+
+  <h2 id="sec-params-hdr">Parameters</h2>
+  <div class="ctrl" id="row-iter">
+    <label>Iterations: <span id="v-iter">8</span></label>
+    <input type="range" id="s-iter" min="1" max="40" value="8">
+  </div>
+  <div class="ctrl" id="row-comp">
+    <label>Compliance α: <span id="v-comp">0.0000</span></label>
+    <input type="range" id="s-comp" min="0" max="0.01" step="0.0001" value="0">
+  </div>
+  <div class="ctrl" id="row-beta">
+    <label>Baumgarte β: <span id="v-beta">0.20</span></label>
+    <input type="range" id="s-beta" min="0" max="1" step="0.01" value="0.2">
+  </div>
+  <div class="ctrl" id="row-mus">
+    <label>μ static: <span id="v-mus">0.50</span></label>
+    <input type="range" id="s-mus" min="0" max="2" step="0.01" value="0.5">
+  </div>
+  <div class="ctrl" id="row-mud">
+    <label>μ dynamic: <span id="v-mud">0.30</span></label>
+    <input type="range" id="s-mud" min="0" max="2" step="0.01" value="0.3">
+  </div>
+  <div class="ctrl" id="row-rest">
+    <label>Restitution: <span id="v-rest">0.00</span></label>
+    <input type="range" id="s-rest" min="0" max="1" step="0.01" value="0">
+  </div>
+  <div class="ctrl" id="row-grav">
+    <label>Gravity: <span id="v-grav">9.80</span></label>
+    <input type="range" id="s-grav" min="0" max="30" step="0.1" value="9.8">
+  </div>
+  <div class="ctrl" id="row-k">
+    <label>Spring k: <span id="v-k">200</span></label>
+    <input type="range" id="s-k" min="10" max="2000" step="10" value="200">
+  </div>
+  <div class="ctrl" id="row-sd">
+    <label>Spring damping: <span id="v-sd">4.0</span></label>
+    <input type="range" id="s-sd" min="0" max="40" step="0.1" value="4">
+  </div>
+  <div class="ctrl" style="margin-top:6px">
+    <label><input type="checkbox" id="s-pause">&nbsp;Paused</label>
+  </div>
+  <div class="btn-group" style="margin-top:6px">
+    <button class="btn" id="reset-btn">Reset (R)</button>
+  </div>
+
+  <h2>Energy E_kin / E₀ (Part 1)</h2>
+  <canvas id="energy-plot" width="240" height="80"
+          style="background:#0a0a18;border:1px solid #1e1e36;display:block"></canvas>
+
+  <h2>Metrics</h2>
+  <div class="metric">FPS              <span id="m-fps">—</span></div>
+  <div class="metric">Steps            <span id="m-steps">—</span></div>
+  <div class="metric">Bodies           <span id="m-bodies">—</span></div>
+  <div class="metric">Contacts         <span id="m-contacts">—</span></div>
+  <div class="metric">‖L‖              <span id="m-L">—</span></div>
+  <div class="metric">‖L₀‖             <span id="m-L0">—</span></div>
+  <div class="metric">L drift %        <span id="m-Ldr">—</span></div>
+  <div class="metric">E_kin            <span id="m-E">—</span></div>
+  <div class="metric">E_kin / E₀       <span id="m-Er">—</span></div>
+  <div class="metric">Broadphase pairs <span id="m-bp">—</span></div>
+  <div class="metric">max|C|           <span id="m-C">—</span></div>
+
+  <h2>Controls</h2>
+  <div style="color:#3a4a5a;font-size:11px;line-height:1.7">
+    RMB drag → orbit<br>
+    Scroll → zoom<br>
+    R → reset<br>
+  </div>
+</div>
+
+<div id="canvas-container"></div>
+<div id="hint"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/p5@2.2.1/lib/p5.min.js"></script>
+<script src="quat.js"></script>
+<script src="inertia.js"></script>
+<script src="body.js"></script>
+<script src="solvers/free_rotation.js"></script>
+<script src="solvers/spring.js"></script>
+<script src="solvers/si.js"></script>
+<script src="solvers/xpbd.js"></script>
+<script src="solvers/friction_xpbd.js"></script>
+<script src="broadphase/bruteforce.js"></script>
+<script src="broadphase/spatial_grid.js"></script>
+<script src="broadphase/sap.js"></script>
+<script src="broadphase/lbvh.js"></script>
+<script src="collision/sat_box.js"></script>
+<script src="scenes.js"></script>
+<script src="ui.js"></script>
+<script src="sketch.js"></script>
+</body>
+</html>
