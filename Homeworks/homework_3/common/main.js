@@ -65,20 +65,20 @@ function draw() {
   directionalLight(240, 240, 250, -0.4, -0.8, -0.3);
   directionalLight(140, 160, 200,  0.5, -0.2,  0.7);
 
-  if (!sim.paused) simStep();
+  if (!sim.paused) updateSimulation();
 
   _drawScene();
   updateMetrics();
 }
 
-function simStep() {
+function updateSimulation() {
   const dt = sim.dt;
   sim.elapsed += dt;
   sim.stepCount = (sim.stepCount || 0) + 1;
 
-  if (sim.part === 1)      _stepPart1(dt);
-  else if (sim.part === 2) _stepPart2(dt);
-  else                     _stepPart34(dt);
+  if (sim.part === 1)      updateFreeRotation(dt);
+  else if (sim.part === 2) updateConstraints(dt);
+  else                     updateCollisions(dt);
 
   if (sim.part === 1 && sim.bodies.length > 0) {
     const E = computeKineticEnergy(sim.bodies[0]);
@@ -88,12 +88,12 @@ function simStep() {
   }
 }
 
-function _stepPart1(dt) {
+function updateFreeRotation(dt) {
   const b = sim.bodies[0];
   freeRotStep(b, dt, sim.freeRotMode);
 }
 
-function _stepPart2(dt) {
+function updateConstraints(dt) {
   const kind = sim.part2Kind;
 
   const useGravity = !(kind === 'distXPBD' || kind === 'distSI');
@@ -106,14 +106,14 @@ function _stepPart2(dt) {
 
   if (kind === 'springForce') {
     for (const s of sim.springs) applySpringForce(sim.bodies[s.figureIdx], s, dt);
-    for (const b of sim.bodies) _angularImplicitStep(b, dt);
-    for (const b of sim.bodies) _positionStep(b, dt);
+    for (const b of sim.bodies) integrateAngularVelocity(b, dt);
+    for (const b of sim.bodies) integratePosition(b, dt);
   } else if (kind === 'springSoft') {
-    for (const b of sim.bodies) _angularImplicitStep(b, dt);
+    for (const b of sim.bodies) integrateAngularVelocity(b, dt);
     for (const s of sim.springs) s.lambdaAccum = 0;
     for (let it = 0; it < sim.iterations; it++)
       for (const s of sim.springs) solveSpringSoft(sim.bodies[s.figureIdx], s, dt);
-    for (const b of sim.bodies) _positionStep(b, dt);
+    for (const b of sim.bodies) integratePosition(b, dt);
   } else if (kind === 'distXPBD') {
     const sub = 4;
     const subDt = dt / sub;
@@ -159,7 +159,7 @@ function _stepPart2(dt) {
       sim.maxC = Math.max(sim.maxC, Math.abs(vLen(vSub(pA, pB)) - c.restLen));
     }
   } else if (kind === 'distSI') {
-    for (const b of sim.bodies) _angularImplicitStep(b, dt);
+    for (const b of sim.bodies) integrateAngularVelocity(b, dt);
     for (const c of sim.constraints) c.lambdaAccum = 0;
     const postStab = sim.part2SI_PostStab || 'baumgarte';
     const params = { beta: sim.baumgarteBeta, k: sim.springK, damping: sim.springDamping };
@@ -169,7 +169,7 @@ function _stepPart2(dt) {
         applyDistanceConstraintSI(A, B, c, postStab, params, dt);
       }
     }
-    for (const b of sim.bodies) _positionStep(b, dt);
+    for (const b of sim.bodies) integratePosition(b, dt);
     if (postStab === 'nlgs') {
       for (let it = 0; it < sim.iterations; it++) {
         for (const c of sim.constraints) {
@@ -188,12 +188,12 @@ function _stepPart2(dt) {
   }
 }
 
-function _angularImplicitStep(b, dt) {
+function integrateAngularVelocity(b, dt) {
   if (b.invM === 0) return;
   integrateAngularImplicit(b, [0,0,0], dt);
 }
 
-function _positionStep(b, dt) {
+function integratePosition(b, dt) {
   if (b.invM === 0) return;
   b.x[0] += b.v[0] * dt;
   b.x[1] += b.v[1] * dt;
@@ -203,12 +203,12 @@ function _positionStep(b, dt) {
 
 let sapState = null;
 
-function snapshotContactPoint(A, B, ct) {
+function storeContactPosition(A, B, ct) {
   ct._prevPA = vAdd(A.x, quatRotate(A.q, ct.rAloc));
   ct._prevPB = B ? vAdd(B.x, quatRotate(B.q, ct.rBloc)) : ct.worldB.slice();
 }
 
-function _stepPart34(dt) {
+function updateCollisions(dt) {
   for (const b of sim.bodies) {
     if (b.invM === 0) continue;
     b.v[1] -= sim.gravity * dt;
@@ -244,11 +244,11 @@ function _stepPart34(dt) {
   }
   sim.contacts = contacts;
 
-  if (sim.solver === 'xpbd') _solveXPBD(contacts, dt);
-  else                        _solveSI(contacts, dt);
+  if (sim.solver === 'xpbd') resolveContactsXPBD(contacts, dt);
+  else                        resolveContactsSI(contacts, dt);
 }
 
-function _solveSI(contacts, dt) {
+function resolveContactsSI(contacts, dt) {
   const params = { beta: sim.baumgarteBeta, mu: sim.muDynamic, restitution: sim.restitution };
 
   for (const b of sim.bodies) {
@@ -283,7 +283,7 @@ function _solveSI(contacts, dt) {
   }
 }
 
-function _solveXPBD(contacts, dt) {
+function resolveContactsXPBD(contacts, dt) {
   const sub = 4;
   const subDt = dt / sub;
   const alpha = sim.compliance;
@@ -303,7 +303,7 @@ function _solveXPBD(contacts, dt) {
     for (const ct of contacts) {
       const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
       ct.worldB = vAdd(B.x, quatRotate(B.q, ct.rBloc));
-      snapshotContactPoint(A, B, ct);
+      storeContactPosition(A, B, ct);
     }
 
     for (const ct of contacts) ct.lambdaN = 0;
