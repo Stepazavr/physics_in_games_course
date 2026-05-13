@@ -53,22 +53,21 @@ function draw() {
   if (abs(width - cont.clientWidth) > 2 || abs(height - cont.clientHeight) > 2)
     resizeCanvas(cont.clientWidth, cont.clientHeight);
 
-  background(13, 13, 26);
+  background(232, 232, 236);
   sim.fps = round(frameRate());
 
   perspective(PI / 3, width / height, 0.1, 500);
   const eye = _camEye();
   camera(eye.x, eye.y, eye.z, cam.tx, cam.ty, cam.tz, 0, -1, 0);
 
-  ambientLight(80, 80, 95);
-  directionalLight(220, 220, 230, -0.4, -0.8, -0.3);
-  directionalLight(80, 100, 140,  0.5, -0.2,  0.7);
+  ambientLight(200, 200, 210);
+  directionalLight(240, 240, 250, -0.4, -0.8, -0.3);
+  directionalLight(140, 160, 200,  0.5, -0.2,  0.7);
 
   if (!sim.paused) simStep();
 
   _drawScene();
   updateMetrics();
-  _drawEnergyPlot();
 }
 
 function simStep() {
@@ -352,20 +351,80 @@ function _drawScene() {
 function _drawAngularMomentumArrows() {
   const b = sim.bodies[0];
   if (!b) return;
+  
+  // Get principal axes from the body quaternion (main inertia axes)
+  const c = b.x;
+  const axisLen = 1.5;
+  
+  // Compute principal axes by rotating standard basis vectors through body orientation
+  // X-axis (red): rotate [1, 0, 0]
+  const axisX = quatRotate(b.q, [1, 0, 0]);
+  
+  // Y-axis (green): rotate [0, 1, 0]
+  const axisY = quatRotate(b.q, [0, 1, 0]);
+  
+  // Z-axis (blue): rotate [0, 0, 1]
+  const axisZ = quatRotate(b.q, [0, 0, 1]);
+  
+  // Draw body orientation axes
+  _arrowWithHead(c, vAdd(c, vMul(axisX, axisLen)), [255, 100, 100]);
+  _arrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [100, 255, 100]);
+  _arrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [100, 150, 255]);
+  
+  // Draw angular momentum vectors
   const L = bodyAngularMomentum(b);
   const L0 = sim.L0 || [0,0,0];
   const Lmax = Math.max(vLen(L), vLen(L0), 0.01);
   const sL = 2.5 / Lmax;
-  const c = b.x;
-  _arrow(c, vAdd(c, vMul(L0, sL)), [180, 180, 180]);
-  _arrow(c, vAdd(c, vMul(L,  sL)), [255, 160, 60]);
+  
+  // L0 - cyan (translucent)
+  _arrowWithHead(c, vAdd(c, vMul(L0, sL)), [100, 200, 255], 0.6);
+  
+  // L - bright cyan
+  _arrowWithHead(c, vAdd(c, vMul(L,  sL)), [100, 255, 255]);
+}
+
+function _arrowWithHead(a, b, color, opacity = 1.0) {
+  _thinRod(a, b, 0.025, color, opacity);
+  
+  // Draw arrowhead at point b
+  const dir = vSub(b, a);
+  const len = vLen(dir);
+  if (len < 1e-6) return;
+  
+  const n = vMul(dir, 1 / len);
+  const arrowSize = 0.15;
+  
+  // Create two perpendicular vectors
+  let perp1 = vCross(n, [0, 1, 0]);
+  if (vLen(perp1) < 0.1) perp1 = vCross(n, [1, 0, 0]);
+  perp1 = vNorm(perp1);
+  const perp2 = vCross(n, perp1);
+  
+  const arrowBase = vAdd(b, vMul(n, -arrowSize * 0.5));
+  const point1 = vAdd(arrowBase, vMul(perp1, arrowSize * 0.3));
+  const point2 = vAdd(arrowBase, vMul(perp2, arrowSize * 0.3));
+  
+  push();
+    noStroke();
+    fill(color[0], color[1], color[2], opacity * 255);
+    
+    // Draw tetrahedron for arrowhead
+    beginShape(TRIANGLES);
+    // Face 1
+    vertex(b[0], b[1], b[2]); vertex(point1[0], point1[1], point1[2]); vertex(point2[0], point2[1], point2[2]);
+    // Face 2
+    vertex(b[0], b[1], b[2]); vertex(point2[0], point2[1], point2[2]); 
+    vertex(vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[0], vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[1], vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[2]);
+    endShape();
+  pop();
 }
 
 function _arrow(a, b, color) {
   _thinRod(a, b, 0.025, color);
 }
 
-function _thinRod(a, b, radius, color) {
+function _thinRod(a, b, radius, color, opacity = 1.0) {
   const dir = vSub(b, a);
   const len = vLen(dir);
   if (len < 1e-6) return;
@@ -385,7 +444,7 @@ function _thinRod(a, b, radius, color) {
       rotate(Math.PI, [1, 0, 0]);
     }
     noStroke();
-    fill(color[0], color[1], color[2]);
+    fill(color[0], color[1], color[2], opacity * 255);
     cylinder(radius, len, 12, 1, true, true);
   pop();
 }
@@ -477,7 +536,7 @@ function _drawEnergyPlot() {
 
 function mousePressed(event) {
   if (!event || event.target.tagName !== 'CANVAS') return;
-  if (event.button === 2) {
+  if (event.button === 0) {
     cam.dragging = true; cam.lx = mouseX; cam.ly = mouseY;
     return false;
   }
@@ -494,7 +553,7 @@ function mouseDragged() {
 }
 
 function mouseReleased(event) {
-  if (!event || event.button === 2) cam.dragging = false;
+  if (!event || event.button === 0) cam.dragging = false;
 }
 
 function mouseWheel(e) {

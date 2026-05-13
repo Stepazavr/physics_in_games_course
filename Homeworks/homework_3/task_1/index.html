@@ -6,67 +6,142 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      display: flex; background: #0d0d1a; color: #ccd;
-      font-family: 'Courier New', monospace; font-size: 12px;
+      display: flex; background: #f5f5f5; color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px;
       overflow: hidden; height: 100vh;
     }
-    #sidebar {
-      width: 260px; min-width: 260px; height: 100vh; overflow-y: auto;
-      background: #111120; border-right: 1px solid #222240;
-      padding: 8px 10px; flex-shrink: 0;
+    #top-bar {
+      position: absolute; top: 0; left: 0; right: 0; height: 60px;
+      background: #ffffff; border-bottom: 1px solid #ccc;
+      padding: 8px 15px; display: flex; gap: 15px; align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      z-index: 10;
     }
+    #left-panel {
+      width: 350px; min-width: 350px; height: 100vh; overflow-y: auto;
+      background: #fafafa; border-right: 1px solid #ddd;
+      padding: 70px 15px 15px; flex-shrink: 0;
+    }
+    #canvas-container { 
+      flex: 1; height: 100vh; overflow: hidden; background: #e8e8ec; 
+      margin-top: 0;
+    }
+    
+    .title-section {
+      font-weight: 600; font-size: 14px; color: #222;
+      letter-spacing: 0.3px;
+    }
+    
+    .pause-btn {
+      padding: 6px 14px; background: #ff9800; border: none;
+      color: #fff; cursor: pointer; font-family: inherit; font-size: 12px;
+      border-radius: 3px; transition: all 0.2s; font-weight: 600;
+    }
+    
+    .pause-btn:hover { background: #f57c00; }
+    .pause-btn.active { background: #4CAF50; }
+    
+    .reset-btn {
+      padding: 6px 14px; background: #2196F3; border: none;
+      color: #fff; cursor: pointer; font-family: inherit; font-size: 12px;
+      border-radius: 3px; transition: all 0.2s; font-weight: 600;
+    }
+    
+    .reset-btn:hover { background: #1976D2; }
+    
     h2 {
-      font-size: 10px; color: #5070a0; margin: 10px 0 4px;
-      text-transform: uppercase; letter-spacing: 1px;
-      border-bottom: 1px solid #1e1e36; padding-bottom: 2px;
+      font-size: 12px; color: #666; margin: 14px 0 8px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #ddd; padding-bottom: 4px;
     }
-    .btn-group { display: flex; gap: 3px; flex-wrap: wrap; margin: 3px 0; }
-    .btn {
-      padding: 3px 8px; background: #181828; border: 1px solid #303050;
-      color: #778; cursor: pointer; font-family: inherit; font-size: 11px;
-      border-radius: 2px;
+    
+    .metric {
+      display: flex; justify-content: space-between;
+      color: #000; font-size: 15px; margin: 10px 0; font-family: 'Monaco', monospace;
+      font-weight: 600;
     }
-    .btn:hover  { background: #222240; border-color: #4455aa; color: #aab; }
-    .btn.active { background: #1a2850; border-color: #3377ee; color: #88bbff; }
-    .btn[disabled] { opacity: 0.35; cursor: not-allowed; }
-    .ctrl { margin: 5px 0; }
-    .ctrl label { display: block; color: #667; font-size: 11px; margin-bottom: 1px; }
-    .ctrl input[type=range] { width: 100%; accent-color: #4488ff; }
-    .metric { display: flex; justify-content: space-between;
-              color: #2a9a4a; font-size: 11px; margin: 2px 0; }
-    .metric span { color: #44cc66; }
-    #canvas-container { flex: 1; height: 100vh; overflow: hidden; }
+    
+    .metric-label { color: #555; }
+    .metric-value { color: #000; }
+    
+    .vector-metric {
+      color: #000; font-size: 15px; margin: 10px 0; font-family: 'Monaco', monospace;
+      font-weight: 600;
+    }
+    
+    .vector-label { color: #555; display: block; margin-bottom: 3px; font-weight: 600; }
+    .vector-value { color: #000; }
+    
+    /* Scene tree */
+    .scene-btn {
+      display: block; width: 100%; text-align: left; padding: 8px 10px;
+      margin: 4px 0; background: #f9f9f9; border: 1px solid #ccc;
+      color: #333; cursor: pointer; font-size: 12px; border-radius: 3px;
+      transition: all 0.15s;
+    }
+    
+    .scene-btn:hover { background: #eee; border-color: #999; }
+    .scene-btn.active { background: #4CAF50; color: #fff; border-color: #4CAF50; font-weight: 600; }
+    
+    .scene-branch { margin-left: 12px; }
+    
     canvas { display: block; }
-    #hint {
-      position: absolute; bottom: 8px; left: 270px;
-      color: #334; font-size: 11px; pointer-events: none;
-    }
   </style>
 </head>
 <body>
-<div id="sidebar">
-  <h2>Part 1 - Free Rotation</h2>
-  <div class="btn-group" id="scene-btns"></div>
 
-  <h2>Metrics</h2>
-  <div class="metric"><span>FPS:</span> <span id="m-fps">0</span></div>
-  <div class="metric"><span>Steps:</span> <span id="m-steps">0</span></div>
-  <div class="metric"><span>L (current):</span> <span id="m-L">—</span></div>
-  <div class="metric"><span>L₀ (initial):</span> <span id="m-L0">—</span></div>
-  <div class="metric"><span>ΔL drift:</span> <span id="m-Ldr">—</span></div>
-  <div class="metric"><span>E (current):</span> <span id="m-E">—</span></div>
-  <div class="metric"><span>E/E₀:</span> <span id="m-Er">—</span></div>
+<div id="top-bar">
+  <div class="title-section">Симуляция твердого тела c постоянным моментом импульса</div>
+  <div style="margin-left: auto; display: flex; gap: 8px;">
+    <button class="pause-btn" id="pause-btn">⏸ Pause</button>
+    <button class="reset-btn" id="reset-btn">↻ Reset</button>
+  </div>
+</div>
 
-  <div class="ctrl">
-    <label><input type="checkbox" id="s-pause"> Pause</label>
-    <button id="reset-btn" class="btn" style="width: 100%;">Reset Scene</button>
+<div id="left-panel">
+  <div class="scene-tree">
+    <button class="scene-btn active" data-val="1A">В глобальных координатах</button>
+    
+    <button class="scene-btn" data-val="1B_parent">В локальных координатах</button>
+    <div class="scene-branch" id="local-branch" style="display: none;">
+      <button class="scene-btn" data-val="1B" style="margin-left: 8px;">Без гироскопического слагаемого</button>
+      <button class="scene-btn" data-val="1C_parent" style="margin-left: 8px;">С гироскопическим слагаемым</button>
+      <div class="scene-branch" id="gyro-branch" style="display: none; margin-left: 8px;">
+        <button class="scene-btn" data-val="1C" style="margin-left: 8px;">В явном выражении</button>
+        <button class="scene-btn" data-val="1D" style="margin-left: 8px;">В неявном выражении</button>
+      </div>
+    </div>
   </div>
 
-  <canvas id="energy-plot" width="250" height="60" style="display: block; margin-top: 10px; border: 1px solid #222244;"></canvas>
+  <h2>Параметры</h2>
+  
+  <div class="vector-metric">
+    <span class="vector-label">L₀ (начальный):</span>
+    <span class="vector-value" id="m-L0-vec">—</span>
+  </div>
+  
+  <div class="vector-metric">
+    <span class="vector-label">L (текущий):</span>
+    <span class="vector-value" id="m-L-vec">—</span>
+  </div>
+  
+  <div class="metric">
+    <span class="metric-label">E (текущая):</span>
+    <span class="metric-value" id="m-E">—</span>
+  </div>
+  
+  <div class="metric">
+    <span class="metric-label">E₀ (начальная):</span>
+    <span class="metric-value" id="m-E0">—</span>
+  </div>
+  
+  <div class="metric">
+    <span class="metric-label">ω (угловая скорость):</span>
+    <span class="metric-value" id="m-omega">—</span>
+  </div>
 </div>
 
 <div id="canvas-container"></div>
-<div id="hint"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
 <script>const TASK_PART = 1;</script>
@@ -76,5 +151,105 @@
 <script src="../common/ui.js"></script>
 <script src="free_rotation.js"></script>
 <script src="../common/main.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let pausedState = false;
+    
+    // Handle scene button selection
+    const sceneButtons = document.querySelectorAll('.scene-btn');
+    const localBranch = document.getElementById('local-branch');
+    const gyroBranch = document.getElementById('gyro-branch');
+    
+    sceneButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (this.disabled) return;
+        
+        const val = this.dataset.val;
+        
+        // Remove active from all buttons
+        sceneButtons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        if (val === '1A') {
+          localBranch.style.display = 'none';
+          gyroBranch.style.display = 'none';
+          _loadSceneWithDefaults('1A');
+        } else if (val === '1B_parent') {
+          localBranch.style.display = 'block';
+          gyroBranch.style.display = 'none';
+          document.querySelector('[data-val="1B"]').classList.add('active');
+          _loadSceneWithDefaults('1B');
+        } else if (val === '1B') {
+          gyroBranch.style.display = 'none';
+          document.querySelector('[data-val="1B_parent"]').classList.add('active');
+          this.classList.add('active');
+          _loadSceneWithDefaults('1B');
+        } else if (val === '1C_parent') {
+          gyroBranch.style.display = 'block';
+          document.querySelector('[data-val="1B_parent"]').classList.add('active');
+          this.classList.add('active');
+          document.querySelector('[data-val="1C"]').classList.add('active');
+          _loadSceneWithDefaults('1C');
+        } else if (val === '1C' || val === '1D') {
+          gyroBranch.style.display = 'block';
+          document.querySelector('[data-val="1B_parent"]').classList.add('active');
+          document.querySelector('[data-val="1C_parent"]').classList.add('active');
+          this.classList.add('active');
+          _loadSceneWithDefaults(val);
+        }
+      });
+    });
+    
+    // Handle pause button
+    const pauseBtn = document.getElementById('pause-btn');
+    pauseBtn.addEventListener('click', function() {
+      sim.paused = !sim.paused;
+      pausedState = sim.paused;
+      this.classList.toggle('active');
+      this.textContent = sim.paused ? '▶ Resume' : '⏸ Pause';
+    });
+    
+    // Handle reset button - preserve pause state
+    const resetBtn = document.getElementById('reset-btn');
+    resetBtn.addEventListener('click', function() {
+      loadScene(sim.sceneId);
+      sim.paused = pausedState;
+      if (pausedState) {
+        pauseBtn.classList.add('active');
+        pauseBtn.textContent = '▶ Resume';
+      } else {
+        pauseBtn.classList.remove('active');
+        pauseBtn.textContent = '⏸ Pause';
+      }
+    });
+  });
+  
+  // Override updateMetrics for vector display
+  function updateMetrics() {
+    if (sim.bodies.length > 0 && sim.part === 1) {
+      const b = sim.bodies[0];
+      const L = bodyAngularMomentum(b);
+      const E = bodyKineticEnergy(b);
+      const L0 = sim.L0 || [0,0,0];
+      const omega = b.w || [0,0,0];
+      const omegaLen = vLen(omega);
+      
+      // Vector display in bracket notation
+      _set('m-L0-vec', `(${L0[0].toFixed(3)}, ${L0[1].toFixed(3)}, ${L0[2].toFixed(3)})`);
+      _set('m-L-vec', `(${L[0].toFixed(3)}, ${L[1].toFixed(3)}, ${L[2].toFixed(3)})`);
+      
+      _set('m-E',  E.toFixed(3));
+      _set('m-E0', sim.E0 > 1e-9 ? sim.E0.toFixed(3) : '—');
+      _set('m-omega', omegaLen.toFixed(3));
+    } else {
+      _set('m-L0-vec', '—');
+      _set('m-L-vec', '—');
+      _set('m-E', '—');
+      _set('m-E0', '—');
+      _set('m-omega', '—');
+    }
+  }
+</script>
 </body>
 </html>

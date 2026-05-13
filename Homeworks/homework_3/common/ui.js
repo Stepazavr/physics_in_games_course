@@ -182,26 +182,33 @@ function _setSpringDamping(v) {
 
 function updateMetrics() {
   _set('m-fps', sim.fps);
-  _set('m-steps', sim.stepCount || 0);
-  _set('m-bodies', sim.bodies.length);
-  _set('m-contacts', sim.contacts.length);
   if (sim.bodies.length > 0 && sim.part === 1) {
-    const L = bodyAngularMomentum(sim.bodies[0]);
-    const E = bodyKineticEnergy(sim.bodies[0]);
+    const b = sim.bodies[0];
+    const L = bodyAngularMomentum(b);
+    const E = bodyKineticEnergy(b);
     const L0 = sim.L0 || [0,0,0];
-    const Ln  = vLen(L);
-    const L0n = vLen(L0);
-    _set('m-L',  Ln.toFixed(3));
-    _set('m-L0', L0n.toFixed(3));
-    _set('m-Ldr', L0n > 1e-9 ? (100 * vLen(vSub(L, L0)) / L0n).toFixed(2) + '%' : '—');
+    const omega = b.w || [0,0,0];
+    const omegaLen = vLen(omega);
+    
+    // Vector components for L0
+    _set('m-L0x', L0[0].toFixed(3));
+    _set('m-L0y', L0[1].toFixed(3));
+    _set('m-L0z', L0[2].toFixed(3));
+    
+    // Vector components for L
+    _set('m-Lx', L[0].toFixed(3));
+    _set('m-Ly', L[1].toFixed(3));
+    _set('m-Lz', L[2].toFixed(3));
+    
+    // Energy values
     _set('m-E',  E.toFixed(3));
-    _set('m-Er', sim.E0 > 1e-9 ? (E / sim.E0).toFixed(3) : '—');
+    _set('m-E0', sim.E0 > 1e-9 ? sim.E0.toFixed(3) : '—');
+    _set('m-omega', omegaLen.toFixed(3));
   } else {
-    _set('m-L', '—'); _set('m-L0', '—'); _set('m-Ldr', '—');
-    _set('m-E', '—'); _set('m-Er', '—');
+    _set('m-L0x', '—'); _set('m-L0y', '—'); _set('m-L0z', '—');
+    _set('m-Lx', '—'); _set('m-Ly', '—'); _set('m-Lz', '—');
+    _set('m-E', '—'); _set('m-E0', '—'); _set('m-omega', '—');
   }
-  _set('m-bp', sim.broadphasePairs);
-  _set('m-C', sim.maxC.toFixed(4));
 }
 
 function _group(id, fn) {

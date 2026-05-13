@@ -1,8 +1,8 @@
 const SCENES = {
-  '1A': { part: 1, label: '1A · global frame', mode: '1A' },
-  '1B': { part: 1, label: '1B · body, no gyro', mode: '1B' },
-  '1C': { part: 1, label: '1C · explicit gyro', mode: '1C' },
-  '1D': { part: 1, label: '1D · implicit gyro', mode: '1D' },
+  '1A': { part: 1, label: 'в глобальных координатах', mode: '1A' },
+  '1B': { part: 1, label: 'без гироскопического слагаемого', mode: '1B' },
+  '1C': { part: 1, label: 'с гироскопическим слагаемым в явном выражении', mode: '1C' },
+  '1D': { part: 1, label: 'с гироскопическим слагаемым в неявном выражении', mode: '1D' },
 
   '2A': { part: 2, label: '2A · spring force', kind: 'springForce' },
   '2B': { part: 2, label: '2B · spring soft (Buddha)', kind: 'springSoft' },
@@ -58,12 +58,20 @@ function loadScene(id) {
 function _scenePart1() {
   const b = makeBody({
     x: [0, 0, 0],
-    halfExtents: [1.0, 0.3, 0.15],
-    m: 1.0,
-    color: [200, 120, 70],
+    halfExtents: [1.5, 0.5, 0.25],
+    m: 2.0,
+    color: [255, 150, 150],
   });
-  b.w = [0.05, 8.0, 0.05];
+  b.w = [0.05, 2.0, 0.05];
   sim.bodies.push(b);
+
+  const floor = makeBody({
+    x: [0, -3, 0],
+    halfExtents: [8, 0.5, 8],
+    static: true, color: [60, 70, 80],
+  });
+  sim.bodies.push(floor);
+  
 }
 
 function _scenePart2(kind) {
@@ -109,6 +117,13 @@ function _scenePart2(kind) {
       lambdaAccum: 0, lambdaPosAccum: 0,
     });
   }
+  const floor = makeBody({
+    x: [0, -1, 0],
+    halfExtents: [8, 0.5, 8],
+    static: true, color: [60, 70, 80],
+  });
+  sim.bodies.push(floor);
+  
 }
 
 function _sceneStack() {
