@@ -13,8 +13,11 @@ function setup() {
   createCanvas(cont.clientWidth, cont.clientHeight, WEBGL).parent('canvas-container');
   document.addEventListener('contextmenu', e => e.preventDefault());
 
+  const taskPart = typeof TASK_PART !== 'undefined' ? TASK_PART : 1;
+  const initialScene = taskPart === 1 ? '1A' : (taskPart === 2 ? '2A' : (taskPart === 3 ? '3A' : '4A'));
+
   sim = {
-    part: 1, sceneId: '1A',
+    part: taskPart, sceneId: initialScene,
     bodies: [], springs: [], constraints: [], contacts: [],
     dt: 1/60, paused: false, fps: 60,
 
@@ -39,7 +42,10 @@ function setup() {
   };
 
   initUI();
-  loadScene('1A');
+  loadScene(initialScene);
+  _applySceneDefaults(initialScene);
+  _refreshBroadphaseEnabled(initialScene);
+  _refreshVisibility();
 }
 
 function draw() {
@@ -196,6 +202,11 @@ function _positionStep(b, dt) {
 
 let sapState = null;
 
+function snapshotContactPoint(A, B, ct) {
+  ct._prevPA = vAdd(A.x, quatRotate(A.q, ct.rAloc));
+  ct._prevPB = B ? vAdd(B.x, quatRotate(B.q, ct.rBloc)) : ct.worldB.slice();
+}
+
 function _stepPart34(dt) {
   for (const b of sim.bodies) {
     if (b.invM === 0) continue;
@@ -290,6 +301,7 @@ function _solveXPBD(contacts, dt) {
 
     for (const ct of contacts) {
       const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
+      ct.worldB = vAdd(B.x, quatRotate(B.q, ct.rBloc));
       snapshotContactPoint(A, B, ct);
     }
 
@@ -297,10 +309,9 @@ function _solveXPBD(contacts, dt) {
     for (let it = 0; it < 2; it++) {
       for (const ct of contacts) {
         const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
-        ct.worldB = vAdd(B.x, quatRotate(B.q, ct.rBloc));
         xpbdContactNormal(A, B, ct, subDt, alpha);
-        if (isPart4) xpbdContactFriction(A, B, ct, subDt, sim.muStatic, sim.muDynamic);
-        else         xpbdContactFriction(A, B, ct, subDt, sim.muDynamic, sim.muDynamic);
+        if (sim.part === 4) xpbdContactFriction(A, B, ct, subDt, sim.muStatic, sim.muDynamic);
+        else                 xpbdContactFriction(A, B, ct, subDt, sim.muDynamic, sim.muDynamic);
       }
     }
 

@@ -6,37 +6,76 @@ const PART_SCENES = {
 };
 
 function initUI() {
-  _group('part-btns', v => {
-    sim.part = parseInt(v);
-    _rebuildSceneButtons();
-    _loadSceneWithDefaults(PART_SCENES[sim.part][0]);
-  });
+  // Part selector (only exists on main page)
+  const partBtns = document.getElementById('part-btns');
+  if (partBtns) {
+    _group('part-btns', v => {
+      sim.part = parseInt(v);
+      _rebuildSceneButtons();
+      _loadSceneWithDefaults(PART_SCENES[sim.part][0]);
+    });
+  }
+  
   _rebuildSceneButtons();
 
-  _group('solver-btns', v => { sim.solver = v; _refreshVisibility(); });
-  _group('poststab-btns', v => { sim.postStab = v; _refreshVisibility(); });
-  _group('broad-btns', v => {
-    sim.broadphase = v;
-  });
+  const solverBtns = document.getElementById('solver-btns');
+  if (solverBtns) {
+    _group('solver-btns', v => { sim.solver = v; _refreshVisibility(); });
+  }
+  
+  const postStabBtns = document.getElementById('poststab-btns');
+  if (postStabBtns) {
+    _group('poststab-btns', v => { sim.postStab = v; _refreshVisibility(); });
+  }
+  
+  const broadBtns = document.getElementById('broad-btns');
+  if (broadBtns) {
+    _group('broad-btns', v => { sim.broadphase = v; });
+  }
 
-  _slider('s-iter', 'v-iter', v => sim.iterations = Math.round(v), v => String(Math.round(v)));
-  _slider('s-comp', 'v-comp', v => sim.compliance = v, v => v.toFixed(4));
-  _slider('s-beta', 'v-beta', v => sim.baumgarteBeta = v, v => v.toFixed(2));
-  _slider('s-mus',  'v-mus',  v => sim.muStatic = v, v => v.toFixed(2));
-  _slider('s-mud',  'v-mud',  v => sim.muDynamic = v, v => v.toFixed(2));
-  _slider('s-rest', 'v-rest', v => sim.restitution = v, v => v.toFixed(2));
-  _slider('s-grav', 'v-grav', v => sim.gravity = v, v => v.toFixed(2));
-  _slider('s-k',    'v-k',    v => _setSpringK(v), v => v.toFixed(0));
-  _slider('s-sd',   'v-sd',   v => _setSpringDamping(v), v => v.toFixed(1));
+  const iterSlider = document.getElementById('s-iter');
+  if (iterSlider) _slider('s-iter', 'v-iter', v => sim.iterations = Math.round(v), v => String(Math.round(v)));
+  
+  const compSlider = document.getElementById('s-comp');
+  if (compSlider) _slider('s-comp', 'v-comp', v => sim.compliance = v, v => v.toFixed(4));
+  
+  const betaSlider = document.getElementById('s-beta');
+  if (betaSlider) _slider('s-beta', 'v-beta', v => sim.baumgarteBeta = v, v => v.toFixed(2));
+  
+  const musSlider = document.getElementById('s-mus');
+  if (musSlider) _slider('s-mus',  'v-mus',  v => sim.muStatic = v, v => v.toFixed(2));
+  
+  const mudSlider = document.getElementById('s-mud');
+  if (mudSlider) _slider('s-mud',  'v-mud',  v => sim.muDynamic = v, v => v.toFixed(2));
+  
+  const restSlider = document.getElementById('s-rest');
+  if (restSlider) _slider('s-rest', 'v-rest', v => sim.restitution = v, v => v.toFixed(2));
+  
+  const gravSlider = document.getElementById('s-grav');
+  if (gravSlider) _slider('s-grav', 'v-grav', v => sim.gravity = v, v => v.toFixed(2));
+  
+  const kSlider = document.getElementById('s-k');
+  if (kSlider) _slider('s-k',    'v-k',    v => _setSpringK(v), v => v.toFixed(0));
+  
+  const sdSlider = document.getElementById('s-sd');
+  if (sdSlider) _slider('s-sd',   'v-sd',   v => _setSpringDamping(v), v => v.toFixed(1));
 
-  document.getElementById('s-pause').addEventListener('change', e => sim.paused = e.target.checked);
-  document.getElementById('reset-btn').addEventListener('click', () => loadScene(sim.sceneId));
+  const pauseCheckbox = document.getElementById('s-pause');
+  if (pauseCheckbox) {
+    pauseCheckbox.addEventListener('change', e => sim.paused = e.target.checked);
+  }
+  
+  const resetBtn = document.getElementById('reset-btn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => loadScene(sim.sceneId));
+  }
 
   _refreshVisibility();
 }
 
 function _rebuildSceneButtons() {
   const cont = document.getElementById('scene-btns');
+  if (!cont) return;
   cont.innerHTML = '';
   const list = PART_SCENES[sim.part];
   list.forEach((id, idx) => {
@@ -71,6 +110,7 @@ function _applySceneDefaults(sc) {
 
 function _refreshBroadphaseEnabled(sc) {
   const brBtns = document.querySelectorAll('#broad-btns .btn');
+  if (brBtns.length === 0) return;
   brBtns.forEach(b => b.disabled = false);
   if (sc === '4B') {
     brBtns.forEach(b => b.disabled = b.dataset.val !== 'lbvh');
@@ -116,7 +156,9 @@ function _show(id, visible) {
 
 function _setBroadButton(val) {
   sim.broadphase = val;
-  document.querySelectorAll('#broad-btns .btn').forEach(b => {
+  const btns = document.querySelectorAll('#broad-btns .btn');
+  if (btns.length === 0) return;
+  btns.forEach(b => {
     if (b.dataset.val === val) b.classList.add('active');
     else b.classList.remove('active');
   });
@@ -124,7 +166,9 @@ function _setBroadButton(val) {
 
 function _setSolverButton(val) {
   sim.solver = val;
-  document.querySelectorAll('#solver-btns .btn').forEach(b => {
+  const btns = document.querySelectorAll('#solver-btns .btn');
+  if (btns.length === 0) return;
+  btns.forEach(b => {
     if (b.dataset.val === val) b.classList.add('active');
     else b.classList.remove('active');
   });

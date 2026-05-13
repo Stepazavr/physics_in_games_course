@@ -62,8 +62,3 @@ function xpbdContactFriction(A, B, ct, dt, muS, muD) {
     ]);
   }
 }
-
-function snapshotContactPoint(A, B, ct) {
-  ct._prevPA = vAdd(A.x, quatRotate(A.q, ct.rAloc));
-  ct._prevPB = B ? vAdd(B.x, quatRotate(B.q, ct.rBloc)) : ct.worldB.slice();
-}

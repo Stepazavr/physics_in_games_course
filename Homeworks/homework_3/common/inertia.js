@@ -105,3 +105,39 @@ function vDot(a,b){ return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
 function vCross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
 function vLen(a){ return Math.hypot(a[0],a[1],a[2]); }
 function vNorm(a){ const n = vLen(a); return n < 1e-12 ? [0,0,0] : [a[0]/n,a[1]/n,a[2]/n]; }
+
+function integrateAngularImplicit(body, torqueWorld, dt) {
+  if (body.invM === 0) return;
+  const R = quatToMat3(body.q);
+  const Rt = mat3Transpose(R);
+  const w_body = mat3MulVec(Rt, body.w);
+  const tau_body = mat3MulVec(Rt, torqueWorld);
+  const Ib = body.Ibody;
+  const I_diag = [Ib[0],0,0, 0,Ib[1],0, 0,0,Ib[2]];
+  const Iw0 = [Ib[0]*w_body[0], Ib[1]*w_body[1], Ib[2]*w_body[2]];
+  const rhs0 = [
+    Iw0[0] + dt * tau_body[0],
+    Iw0[1] + dt * tau_body[1],
+    Iw0[2] + dt * tau_body[2],
+  ];
+
+  let wp = w_body.slice();
+  for (let it = 0; it < 3; it++) {
+    const Iwp = [Ib[0]*wp[0], Ib[1]*wp[1], Ib[2]*wp[2]];
+    const cross = vCross(wp, Iwp);
+    const f = [
+      Iwp[0] + dt * cross[0] - rhs0[0],
+      Iwp[1] + dt * cross[1] - rhs0[1],
+      Iwp[2] + dt * cross[2] - rhs0[2],
+    ];
+    const W = mat3Cross(wp);
+    const IW = mat3Cross(Iwp);
+    const WI = mat3Mul(W, I_diag);
+    const J = mat3Add(I_diag, mat3Scale(mat3Sub(WI, IW), dt));
+    const dWp = mat3MulVec(mat3Inverse(J), [-f[0], -f[1], -f[2]]);
+    wp = vAdd(wp, dWp);
+    if (vDot(dWp, dWp) < 1e-18) break;
+  }
+
+  body.w = mat3MulVec(R, wp);
+}

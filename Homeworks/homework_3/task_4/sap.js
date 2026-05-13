@@ -5,6 +5,14 @@ function makeSAP() {
   };
 }
 
+function aabbOverlap(a, b) {
+  return (
+    a.aabbMin[0] <= b.aabbMax[0] && a.aabbMax[0] >= b.aabbMin[0] &&
+    a.aabbMin[1] <= b.aabbMax[1] && a.aabbMax[1] >= b.aabbMin[1] &&
+    a.aabbMin[2] <= b.aabbMax[2] && a.aabbMax[2] >= b.aabbMin[2]
+  );
+}
+
 function _sapInsertEvents(sap, bodies) {
   for (let a = 0; a < 3; a++) {
     sap.axes[a].length = 0;
