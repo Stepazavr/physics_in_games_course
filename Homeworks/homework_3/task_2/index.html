@@ -6,105 +6,158 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      display: flex; background: #0d0d1a; color: #ccd;
-      font-family: 'Courier New', monospace; font-size: 12px;
+      display: flex; background: #f5f5f5; color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px;
       overflow: hidden; height: 100vh;
     }
-    #sidebar {
-      width: 260px; min-width: 260px; height: 100vh; overflow-y: auto;
-      background: #111120; border-right: 1px solid #222240;
-      padding: 8px 10px; flex-shrink: 0;
+    #top-bar {
+      position: absolute; top: 0; left: 0; right: 0; height: 60px;
+      background: #ffffff; border-bottom: 1px solid #ccc;
+      padding: 8px 15px; display: flex; gap: 15px; align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      z-index: 10;
     }
+    #left-panel {
+      width: 350px; min-width: 350px; height: 100vh; overflow-y: auto;
+      background: #fafafa; border-right: 1px solid #ddd;
+      padding: 70px 15px 15px; flex-shrink: 0;
+    }
+    #canvas-container { 
+      flex: 1; height: 100vh; overflow: hidden; background: #e8e8ec; 
+      margin-top: 0;
+    }
+    
+    .title-section {
+      font-weight: 600; font-size: 14px; color: #222;
+      letter-spacing: 0.3px;
+    }
+    
+    .pause-btn {
+      padding: 6px 14px; background: #ff9800; border: none;
+      color: #fff; cursor: pointer; font-family: inherit; font-size: 12px;
+      border-radius: 3px; transition: all 0.2s; font-weight: 600;
+    }
+    
+    .pause-btn:hover { background: #f57c00; }
+    .pause-btn.active { background: #4CAF50; }
+    
+    .reset-btn {
+      padding: 6px 14px; background: #2196F3; border: none;
+      color: #fff; cursor: pointer; font-family: inherit; font-size: 12px;
+      border-radius: 3px; transition: all 0.2s; font-weight: 600;
+    }
+    
+    .reset-btn:hover { background: #1976D2; }
+    
     h2 {
-      font-size: 10px; color: #5070a0; margin: 10px 0 4px;
-      text-transform: uppercase; letter-spacing: 1px;
-      border-bottom: 1px solid #1e1e36; padding-bottom: 2px;
+      font-size: 12px; color: #666; margin: 14px 0 8px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #ddd; padding-bottom: 4px;
     }
-    .btn-group { display: flex; gap: 3px; flex-wrap: wrap; margin: 3px 0; }
-    .btn {
-      padding: 3px 8px; background: #181828; border: 1px solid #303050;
-      color: #778; cursor: pointer; font-family: inherit; font-size: 11px;
-      border-radius: 2px;
+    
+    .metric {
+      display: flex; justify-content: space-between;
+      color: #000; font-size: 12px; margin: 6px 0; font-family: 'Monaco', monospace;
     }
-    .btn:hover  { background: #222240; border-color: #4455aa; color: #aab; }
-    .btn.active { background: #1a2850; border-color: #3377ee; color: #88bbff; }
-    .btn[disabled] { opacity: 0.35; cursor: not-allowed; }
-    .ctrl { margin: 5px 0; }
-    .ctrl label { display: block; color: #667; font-size: 11px; margin-bottom: 1px; }
-    .ctrl input[type=range] { width: 100%; accent-color: #4488ff; }
-    .metric { display: flex; justify-content: space-between;
-              color: #2a9a4a; font-size: 11px; margin: 2px 0; }
-    .metric span { color: #44cc66; }
-    #canvas-container { flex: 1; height: 100vh; overflow: hidden; }
+    
+    .metric-label { color: #555; }
+    .metric-value { color: #000; font-weight: 600; }
+    
+    .ctrl {
+      margin: 8px 0; padding: 6px 0;
+    }
+    
+    .ctrl-label {
+      display: block; color: #555; font-size: 11px; margin-bottom: 3px; font-weight: 600;
+    }
+    
+    .ctrl-value {
+      color: #000; font-weight: 600; font-family: 'Monaco', monospace;
+    }
+    
+    .ctrl input[type=range] {
+      width: 100%; accent-color: #4CAF50; height: 5px;
+    }
+    
+    .scene-btn {
+      display: block; width: 100%; text-align: left; padding: 8px 10px;
+      margin: 4px 0; background: #f9f9f9; border: 1px solid #ccc;
+      color: #333; cursor: pointer; font-size: 12px; border-radius: 3px;
+      transition: all 0.15s;
+    }
+    
+    .scene-btn:hover { background: #eee; border-color: #999; }
+    .scene-btn.active { background: #4CAF50; color: #fff; border-color: #4CAF50; font-weight: 600; }
+    
+    .scene-branch { margin-left: 12px; }
+    
     canvas { display: block; }
-    #hint {
-      position: absolute; bottom: 8px; left: 270px;
-      color: #334; font-size: 11px; pointer-events: none;
-    }
   </style>
 </head>
 <body>
-<div id="sidebar">
-  <h2>Part 2 - Springs</h2>
-  <div class="btn-group" id="scene-btns"></div>
 
-  <div id="sec-solver">
-    <h2>Solver</h2>
-    <div class="btn-group" id="solver-btns">
-      <button class="btn active" data-val="si">Sequential Impulses</button>
-      <button class="btn"        data-val="xpbd">XPBD</button>
+<div id="top-bar">
+  <div class="title-section">Симуляция пружин и ограничений на расстояния</div>
+  <div style="margin-left: auto; display: flex; gap: 8px;">
+    <button class="pause-btn" id="pause-btn">⏸ Pause</button>
+    <button class="reset-btn" id="reset-btn">↻ Reset</button>
+  </div>
+</div>
+
+<div id="left-panel">
+  <div class="scene-tree">
+    <button class="scene-btn active" data-val="2A_parent">Твердое тело на пружинке</button>
+    <div class="scene-branch" id="spring-branch" style="display: none;">
+      <button class="scene-btn" data-val="2A" style="margin-left: 8px;">Внешняя сила, численная схема</button>
+      <button class="scene-btn" data-val="2B" style="margin-left: 8px;">Пружинка будды (Soft constraint)</button>
+    </div>
+    
+    <button class="scene-btn" data-val="2C_parent">Два тела с ограничением на длину</button>
+    <div class="scene-branch" id="constraint-branch" style="display: none;">
+      <button class="scene-btn" data-val="2C" style="margin-left: 8px;">XPBD</button>
+      <button class="scene-btn" data-val="2D_parent" style="margin-left: 8px;">Sequential Impulses</button>
+      <div class="scene-branch" id="si-branch" style="display: none; margin-left: 8px;">
+        <button class="scene-btn" data-val="2D_baumgarte" style="margin-left: 8px;">Baumgarte stabilization</button>
+        <button class="scene-btn" data-val="2D_nlgs" style="margin-left: 8px;">Nonlinear Gauss-Seidel</button>
+        <button class="scene-btn" data-val="2D_soft" style="margin-left: 8px;">Пружинки будды</button>
+      </div>
     </div>
   </div>
 
-  <div id="sec-poststab">
-    <h2>Post-stab (SI)</h2>
-    <div class="btn-group" id="poststab-btns">
-      <button class="btn active" data-val="baumgarte">Baumgarte</button>
-      <button class="btn"        data-val="nlgs">NL-GS</button>
-      <button class="btn"        data-val="soft">Soft</button>
-    </div>
-  </div>
-
-  <h2>Parameters</h2>
-  <div class="ctrl" id="row-iter">
-    <label>Iterations: <span id="v-iter">8</span></label>
-    <input type="range" id="s-iter" min="1" max="40" value="8">
-  </div>
-  <div class="ctrl" id="row-comp">
-    <label>Compliance α: <span id="v-comp">0.0000</span></label>
-    <input type="range" id="s-comp" min="0" max="0.01" step="0.0001" value="0">
-  </div>
-  <div class="ctrl" id="row-beta">
-    <label>Baumgarte β: <span id="v-beta">0.20</span></label>
-    <input type="range" id="s-beta" min="0" max="1" step="0.01" value="0.2">
-  </div>
-  <div class="ctrl" id="row-grav">
-    <label>Gravity: <span id="v-grav">9.80</span></label>
-    <input type="range" id="s-grav" min="0" max="30" step="0.1" value="9.8">
-  </div>
+  <h2>Параметры</h2>
+  
   <div class="ctrl" id="row-k">
-    <label>Spring k: <span id="v-k">200</span></label>
+    <label class="ctrl-label">Жёсткость k: <span class="ctrl-value" id="v-k">200</span></label>
     <input type="range" id="s-k" min="10" max="2000" step="10" value="200">
   </div>
+  
   <div class="ctrl" id="row-sd">
-    <label>Spring damping: <span id="v-sd">4.0</span></label>
+    <label class="ctrl-label">Демпфирование c: <span class="ctrl-value" id="v-sd">4.0</span></label>
     <input type="range" id="s-sd" min="0" max="40" step="0.1" value="4">
   </div>
-
-  <div class="ctrl">
-    <label><input type="checkbox" id="s-pause"> Pause</label>
-    <button id="reset-btn" class="btn" style="width: 100%;">Reset Scene</button>
+  
+  <div class="ctrl" id="row-iter" style="display: none;">
+    <label class="ctrl-label">Итерации: <span class="ctrl-value" id="v-iter">8</span></label>
+    <input type="range" id="s-iter" min="1" max="40" value="8">
   </div>
-
-  <h2>Metrics</h2>
-  <div class="metric"><span>FPS:</span> <span id="m-fps">0</span></div>
-  <div class="metric"><span>Steps:</span> <span id="m-steps">0</span></div>
-  <div class="metric"><span>Bodies:</span> <span id="m-bodies">0</span></div>
-  <div class="metric"><span>C violation:</span> <span id="m-C">—</span></div>
+  
+  <div class="ctrl" id="row-comp" style="display: none;">
+    <label class="ctrl-label">Complience α: <span class="ctrl-value" id="v-comp">0.0000</span></label>
+    <input type="range" id="s-comp" min="0" max="0.01" step="0.0001" value="0">
+  </div>
+  
+  <div class="ctrl" id="row-beta" style="display: none;">
+    <label class="ctrl-label">Стабилизация β: <span class="ctrl-value" id="v-beta">0.20</span></label>
+    <input type="range" id="s-beta" min="0" max="1" step="0.01" value="0.2">
+  </div>
+  
+  <div class="ctrl" id="row-rest" style="display: none;">
+    <label class="ctrl-label">Восстановление e: <span class="ctrl-value" id="v-rest">0.00</span></label>
+    <input type="range" id="s-rest" min="0" max="1" step="0.01" value="0">
+  </div>
 </div>
 
 <div id="canvas-container"></div>
-<div id="hint">Right-click drag to rotate camera, scroll to zoom</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
 <script>const TASK_PART = 2;</script>
@@ -116,5 +169,149 @@
 <script src="../common/si.js"></script>
 <script src="../common/xpbd.js"></script>
 <script src="../common/main.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let pausedState = false;
+    
+    const pauseBtn = document.getElementById('pause-btn');
+    const sceneButtons = document.querySelectorAll('.scene-btn');
+    const springBranch = document.getElementById('spring-branch');
+    const constraintBranch = document.getElementById('constraint-branch');
+    const siBranch = document.getElementById('si-branch');
+    
+    sceneButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (this.disabled) return;
+        
+        const val = this.dataset.val;
+        
+        sceneButtons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        if (val === '2A_parent') {
+          springBranch.style.display = 'block';
+          constraintBranch.style.display = 'none';
+          siBranch.style.display = 'none';
+          document.querySelector('[data-val="2A"]').classList.add('active');
+          pausedState = false;
+          sim.paused = false;
+          pauseBtn.classList.remove('active');
+          pauseBtn.textContent = '⏸ Pause';
+          _loadSceneWithDefaults('2A');
+          loadScene('2A');
+        } else if (val === '2A' || val === '2B') {
+          springBranch.style.display = 'block';
+          constraintBranch.style.display = 'none';
+          siBranch.style.display = 'none';
+          document.querySelector('[data-val="2A_parent"]').classList.add('active');
+          this.classList.add('active');
+          pausedState = false;
+          sim.paused = false;
+          pauseBtn.classList.remove('active');
+          pauseBtn.textContent = '⏸ Pause';
+          _loadSceneWithDefaults(val);
+          loadScene(val);
+          loadScene(val);
+        } else if (val === '2C_parent') {
+          springBranch.style.display = 'none';
+          constraintBranch.style.display = 'block';
+          siBranch.style.display = 'none';
+          document.querySelector('[data-val="2C"]').classList.add('active');
+          pausedState = false;
+          sim.paused = false;
+          pauseBtn.classList.remove('active');
+          pauseBtn.textContent = '⏸ Pause';
+          _loadSceneWithDefaults('2C');
+          loadScene('2C');
+        } else if (val === '2C') {
+          springBranch.style.display = 'none';
+          constraintBranch.style.display = 'block';
+          siBranch.style.display = 'none';
+          document.querySelector('[data-val="2C_parent"]').classList.add('active');
+          this.classList.add('active');
+          pausedState = false;
+          sim.paused = false;
+          pauseBtn.classList.remove('active');
+          pauseBtn.textContent = '⏸ Pause';
+          _loadSceneWithDefaults('2C');
+          loadScene('2C');
+        } else if (val === '2D_parent') {
+          springBranch.style.display = 'none';
+          constraintBranch.style.display = 'block';
+          siBranch.style.display = 'block';
+          document.querySelector('[data-val="2C_parent"]').classList.add('active');
+          this.classList.add('active');
+          document.querySelector('[data-val="2D_baumgarte"]').classList.add('active');
+          pausedState = false;
+          sim.paused = false;
+          pauseBtn.classList.remove('active');
+          pauseBtn.textContent = '⏸ Pause';
+          _loadSceneWithDefaults('2D');
+          loadScene('2D');
+        } else if (val === '2D_baumgarte' || val === '2D_nlgs' || val === '2D_soft') {
+          springBranch.style.display = 'none';
+          constraintBranch.style.display = 'block';
+          siBranch.style.display = 'block';
+          document.querySelector('[data-val="2C_parent"]').classList.add('active');
+          document.querySelector('[data-val="2D_parent"]').classList.add('active');
+          this.classList.add('active');
+          
+          const modeMap = { '2D_baumgarte': 'baumgarte', '2D_nlgs': 'nlgs', '2D_soft': 'soft' };
+          sim.part2SI_PostStab = modeMap[val];
+          pausedState = false;
+          sim.paused = false;
+          pauseBtn.classList.remove('active');
+          pauseBtn.textContent = '⏸ Pause';
+          _loadSceneWithDefaults('2D');
+          loadScene('2D');
+        }
+      });
+    });
+    
+    pauseBtn.addEventListener('click', function() {
+      pausedState = !pausedState;
+      sim.paused = pausedState;
+      this.classList.toggle('active', pausedState);
+      this.textContent = sim.paused ? '▶ Resume' : '⏸ Pause';
+    });
+
+    const resetBtn = document.getElementById('reset-btn');
+    resetBtn.addEventListener('click', function() {
+      loadScene(sim.sceneId);
+      _refreshBroadphaseEnabled(SCENES[sim.sceneId]);
+      sim.paused = pausedState;
+      if (pausedState) {
+        pauseBtn.classList.add('active');
+        pauseBtn.textContent = '▶ Resume';
+      } else {
+        pauseBtn.classList.remove('active');
+        pauseBtn.textContent = '⏸ Pause';
+      }
+    });
+    
+    function setupSlider(slId, lblId, setter, fmt) {
+      const sl = document.getElementById(slId);
+      if (!sl) return;
+      sl.addEventListener('input', () => {
+        const v = parseFloat(sl.value);
+        const lbl = document.getElementById(lblId);
+        if (lbl) lbl.textContent = fmt(v);
+        setter(v);
+      });
+    }
+    
+    setupSlider('s-k', 'v-k', v => { sim.springK = v; _setSpringK(v); }, v => v.toFixed(0));
+    setupSlider('s-sd', 'v-sd', v => { sim.springDamping = v; _setSpringDamping(v); }, v => v.toFixed(1));
+    setupSlider('s-iter', 'v-iter', v => sim.iterations = Math.round(v), v => String(Math.round(v)));
+    setupSlider('s-comp', 'v-comp', v => sim.compliance = v, v => v.toFixed(4));
+    setupSlider('s-beta', 'v-beta', v => sim.baumgarteBeta = v, v => v.toFixed(2));
+    setupSlider('s-rest', 'v-rest', v => sim.restitution = v, v => v.toFixed(2));
+    
+    _loadSceneWithDefaults('2A');
+    loadScene('2A');
+  });
+</script>
+
 </body>
 </html>

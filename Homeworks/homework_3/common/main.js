@@ -23,6 +23,7 @@ function setup() {
 
     freeRotMode: '1A',
     part2Kind: 'springForce',
+    part2SI_PostStab: 'baumgarte',
 
     solver: 'si',
     postStab: 'baumgarte',
@@ -160,15 +161,16 @@ function _stepPart2(dt) {
   } else if (kind === 'distSI') {
     for (const b of sim.bodies) _angularImplicitStep(b, dt);
     for (const c of sim.constraints) c.lambdaAccum = 0;
+    const postStab = sim.part2SI_PostStab || 'baumgarte';
     const params = { beta: sim.baumgarteBeta, k: sim.springK, damping: sim.springDamping };
     for (let it = 0; it < sim.iterations; it++) {
       for (const c of sim.constraints) {
         const A = sim.bodies[c.a], B = sim.bodies[c.b];
-        siDistanceConstraint(A, B, c, sim.postStab, params, dt);
+        siDistanceConstraint(A, B, c, postStab, params, dt);
       }
     }
     for (const b of sim.bodies) _positionStep(b, dt);
-    if (sim.postStab === 'nlgs') {
+    if (postStab === 'nlgs') {
       for (let it = 0; it < sim.iterations; it++) {
         for (const c of sim.constraints) {
           const A = sim.bodies[c.a], B = sim.bodies[c.b];
@@ -352,42 +354,30 @@ function _drawAngularMomentumArrows() {
   const b = sim.bodies[0];
   if (!b) return;
   
-  // Get principal axes from the body quaternion (main inertia axes)
   const c = b.x;
   const axisLen = 1.5;
+  const axisXLen = 3.0;
   
-  // Compute principal axes by rotating standard basis vectors through body orientation
-  // X-axis (red): rotate [1, 0, 0]
   const axisX = quatRotate(b.q, [1, 0, 0]);
-  
-  // Y-axis (green): rotate [0, 1, 0]
   const axisY = quatRotate(b.q, [0, 1, 0]);
-  
-  // Z-axis (blue): rotate [0, 0, 1]
   const axisZ = quatRotate(b.q, [0, 0, 1]);
   
-  // Draw body orientation axes
-  _arrowWithHead(c, vAdd(c, vMul(axisX, axisLen)), [255, 100, 100]);
+  _arrowWithHead(c, vAdd(c, vMul(axisX, axisXLen)), [255, 100, 100]);
   _arrowWithHead(c, vAdd(c, vMul(axisY, axisLen)), [100, 255, 100]);
   _arrowWithHead(c, vAdd(c, vMul(axisZ, axisLen)), [100, 150, 255]);
   
-  // Draw angular momentum vectors
   const L = bodyAngularMomentum(b);
   const L0 = sim.L0 || [0,0,0];
   const Lmax = Math.max(vLen(L), vLen(L0), 0.01);
   const sL = 2.5 / Lmax;
   
-  // L0 - cyan (translucent)
   _arrowWithHead(c, vAdd(c, vMul(L0, sL)), [100, 200, 255], 0.6);
-  
-  // L - bright cyan
   _arrowWithHead(c, vAdd(c, vMul(L,  sL)), [100, 255, 255]);
 }
 
 function _arrowWithHead(a, b, color, opacity = 1.0) {
   _thinRod(a, b, 0.025, color, opacity);
   
-  // Draw arrowhead at point b
   const dir = vSub(b, a);
   const len = vLen(dir);
   if (len < 1e-6) return;
@@ -395,7 +385,6 @@ function _arrowWithHead(a, b, color, opacity = 1.0) {
   const n = vMul(dir, 1 / len);
   const arrowSize = 0.15;
   
-  // Create two perpendicular vectors
   let perp1 = vCross(n, [0, 1, 0]);
   if (vLen(perp1) < 0.1) perp1 = vCross(n, [1, 0, 0]);
   perp1 = vNorm(perp1);
@@ -409,11 +398,8 @@ function _arrowWithHead(a, b, color, opacity = 1.0) {
     noStroke();
     fill(color[0], color[1], color[2], opacity * 255);
     
-    // Draw tetrahedron for arrowhead
     beginShape(TRIANGLES);
-    // Face 1
     vertex(b[0], b[1], b[2]); vertex(point1[0], point1[1], point1[2]); vertex(point2[0], point2[1], point2[2]);
-    // Face 2
     vertex(b[0], b[1], b[2]); vertex(point2[0], point2[1], point2[2]); 
     vertex(vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[0], vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[1], vAdd(arrowBase, vMul(perp1, -arrowSize * 0.3))[2]);
     endShape();
@@ -456,17 +442,20 @@ function _drawJoints() {
     const pB = s.pWorld;
     const dLen = vLen(vSub(pA, pB));
     const stretch = Math.abs(dLen - s.restLen) / s.restLen;
+    
     const col = [
-      Math.min(255, 80 + stretch * 800),
-      Math.max(40, 200 - stretch * 600),
-      80,
+      Math.min(255, 150 + stretch * 400),
+      Math.max(50, 100 - stretch * 200),
+      200
     ];
+    
     _thinRod(pA, pB, 0.02, col);
-    push(); noStroke(); fill(255, 220, 60);
-      translate(pA[0], pA[1], pA[2]); sphere(0.07, 14, 10);
+    
+    push(); noStroke(); fill(220, 100, 200);
+      translate(pA[0], pA[1], pA[2]); sphere(0.08, 16, 12);
     pop();
-    push(); noStroke(); fill(180, 180, 180);
-      translate(pB[0], pB[1], pB[2]); sphere(0.1, 14, 10);
+    push(); noStroke(); fill(180, 100, 180);
+      translate(pB[0], pB[1], pB[2]); sphere(0.1, 16, 12);
     pop();
   }
   for (const c of sim.constraints) {
@@ -474,17 +463,19 @@ function _drawJoints() {
     const pA = vAdd(A.x, quatRotate(A.q, c.rAloc));
     const pB = vAdd(B.x, quatRotate(B.q, c.rBloc));
     const err = Math.abs(vLen(vSub(pA, pB)) - c.restLen);
+    
     const col = [
-      Math.min(255, 60 + err * 4000),
-      Math.max(40, 220 - err * 3000),
-      80,
+      100 + Math.min(100, err * 2000),
+      150 + Math.min(100, err * 1000),
+      255
     ];
-    _thinRod(pA, pB, 0.02, col);
-    push(); noStroke(); fill(255, 220, 60);
-      translate(pA[0], pA[1], pA[2]); sphere(0.07, 14, 10);
+    _thinRod(pA, pB, 0.035, col);
+    
+    push(); noStroke(); fill(100, 200, 255);
+      translate(pA[0], pA[1], pA[2]); sphere(0.08, 16, 12);
     pop();
-    push(); noStroke(); fill(255, 220, 60);
-      translate(pB[0], pB[1], pB[2]); sphere(0.07, 14, 10);
+    push(); noStroke(); fill(100, 200, 255);
+      translate(pB[0], pB[1], pB[2]); sphere(0.08, 16, 12);
     pop();
   }
 }

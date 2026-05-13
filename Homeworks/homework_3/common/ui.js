@@ -6,7 +6,6 @@ const PART_SCENES = {
 };
 
 function initUI() {
-  // Part selector (only exists on main page)
   const partBtns = document.getElementById('part-btns');
   if (partBtns) {
     _group('part-btns', v => {
@@ -105,6 +104,17 @@ function _applySceneDefaults(sc) {
   }
   const def = { '3A': 'brute', '3B': 'grid', '4A': 'sap' };
   if (def[sc]) _setBroadButton(def[sc]);
+  
+  if (sc === '2A' || sc === '2B') {
+    sim.part2Kind = sc;
+  } else if (sc === '2C') {
+    sim.part2Kind = '2C';
+    _setSolverButton('xpbd');
+  } else if (sc === '2D') {
+    sim.part2Kind = '2D';
+    _setSolverButton('si');
+    sim.part2SI_PostStab = sim.part2SI_PostStab || 'baumgarte';
+  }
 }
 
 function _refreshBroadphaseEnabled(sc) {
@@ -124,26 +134,32 @@ function _refreshVisibility() {
   const sc = sim.sceneId;
   const sv = sim.solver;
   const ps = sim.postStab;
+  const part2SI_PS = sim.part2SI_PostStab || 'baumgarte';
   const isContactPart = (p === 3 || p === 4);
   const isPart2Spring = (sc === '2A' || sc === '2B');
   const isPart2Dist   = (sc === '2C' || sc === '2D');
   const isXPBDActive  = (sc === '2C') || (isContactPart && sv === 'xpbd');
   const isSIActive    = (sc === '2D') || (isContactPart && sv === 'si');
+  const isSI_Baumgarte = sc === '2D' && part2SI_PS === 'baumgarte';
+  const isSI_NLGS     = sc === '2D' && part2SI_PS === 'nlgs';
+  const isSI_Soft     = sc === '2D' && part2SI_PS === 'soft';
   const softPostStab  = (sc === '2D' && ps === 'soft');
 
   _show('sec-solver',   isContactPart);
   _show('sec-poststab', isSIActive);
   _show('sec-broad',    isContactPart);
 
-  _show('row-iter',  sc === '2B' || isSIActive);
-  _show('row-comp',  isXPBDActive);
-  _show('row-beta',  isSIActive && ps === 'baumgarte');
-  _show('row-mus',   p === 4 && isXPBDActive);
-  _show('row-mud',   isContactPart);
-  _show('row-rest',  isSIActive);
-  _show('row-grav',  isPart2Spring || isContactPart);
-  _show('row-k',     isPart2Spring || softPostStab);
-  _show('row-sd',    isPart2Spring || softPostStab);
+  _show('row-k',    isPart2Spring || isSI_Soft || softPostStab);
+  _show('row-sd',   isPart2Spring || isSI_Soft || softPostStab);
+  
+  _show('row-iter', isPart2Spring || isPart2Dist || isContactPart);
+  _show('row-comp', isXPBDActive);
+  _show('row-beta', isSI_Baumgarte || isSI_Soft);
+  _show('row-rest', isSIActive || isContactPart);
+  
+  _show('row-mus',  p === 4 && isXPBDActive);
+  _show('row-mud',  isContactPart);
+  _show('row-grav', isPart2Spring || isContactPart);
 }
 
 function _show(id, visible) {
@@ -181,8 +197,7 @@ function _setSpringDamping(v) {
 }
 
 function updateMetrics() {
-  _set('m-fps', sim.fps);
-  if (sim.bodies.length > 0 && sim.part === 1) {
+  if (sim.part === 1) {
     const b = sim.bodies[0];
     const L = bodyAngularMomentum(b);
     const E = bodyKineticEnergy(b);
@@ -190,24 +205,24 @@ function updateMetrics() {
     const omega = b.w || [0,0,0];
     const omegaLen = vLen(omega);
     
-    // Vector components for L0
     _set('m-L0x', L0[0].toFixed(3));
     _set('m-L0y', L0[1].toFixed(3));
     _set('m-L0z', L0[2].toFixed(3));
     
-    // Vector components for L
     _set('m-Lx', L[0].toFixed(3));
     _set('m-Ly', L[1].toFixed(3));
     _set('m-Lz', L[2].toFixed(3));
     
-    // Energy values
     _set('m-E',  E.toFixed(3));
     _set('m-E0', sim.E0 > 1e-9 ? sim.E0.toFixed(3) : '—');
     _set('m-omega', omegaLen.toFixed(3));
-  } else {
-    _set('m-L0x', '—'); _set('m-L0y', '—'); _set('m-L0z', '—');
-    _set('m-Lx', '—'); _set('m-Ly', '—'); _set('m-Lz', '—');
-    _set('m-E', '—'); _set('m-E0', '—'); _set('m-omega', '—');
+  } else if (sim.part === 2) {
+    _set('m-k', sim.springK ? sim.springK.toFixed(0) : '200');
+    _set('m-sd', sim.springDamping ? sim.springDamping.toFixed(1) : '4.0');
+    
+    if (sim.iterations) _set('m-iter', String(sim.iterations));
+    if (sim.compliance !== undefined) _set('m-comp', sim.compliance.toFixed(4));
+    if (sim.baumgarteBeta !== undefined) _set('m-beta', sim.baumgarteBeta.toFixed(2));
   }
 }
 

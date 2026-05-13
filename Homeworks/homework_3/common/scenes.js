@@ -77,35 +77,37 @@ function _scenePart1() {
 function _scenePart2(kind) {
   if (kind === 'springForce' || kind === 'springSoft') {
     const b = makeBody({
-      x: [0, 1.5, 0],
-      halfExtents: [0.5, 0.2, 0.3],
-      m: 1.0, color: [120, 180, 240],
+      x: [0, 1.0, 0],
+      halfExtents: [1.5, 0.5, 0.25],
+      m: 2.0, color: [255, 150, 150],
     });
-    b.q = quatFromAxisAngle([0, 0, 1], 0.4);
+    b.q = quatFromAxisAngle([0, 0, 1], 0.3);
+    b.w = [0.2, 0.1, 1.5];
     sim.bodies.push(b);
-    const rLocal = [0.5, 0.2, 0.3];
+    const rLocal = [1.2, 0.3, 0];
     sim.springs.push({
       bodyIdx: 0,
       rLocal,
-      pWorld: [0, 4.0, 0],
-      restLen: 2.0,
+      pWorld: [0, 4.5, 0],
+      restLen: 3.2,
       k: 200, c: 4,
       lambdaAccum: 0,
     });
   } else {
     const A = makeBody({
-      x: [-0.9, 2.4, 0], halfExtents: [0.4, 0.3, 0.4],
-      m: 1, color: [220, 140, 100],
+      x: [-2.0, 2.5, 0], halfExtents: [1.5, 0.5, 0.25],
+      m: 2.0, color: [255, 150, 150],
     });
     const B = makeBody({
-      x: [ 0.9, 2.4, 0], halfExtents: [0.4, 0.3, 0.4],
-      m: 1, color: [120, 180, 240],
+      x: [2.0, 2.5, 0], halfExtents: [1.5, 0.5, 0.25],
+      m: 2.0, color: [150, 180, 255],
     });
-    A.w = [0, 0, 2.5];
+    A.w = [0.1, 0.05, 1.8];
+    B.w = [-0.1, -0.05, -1.8];
     sim.bodies.push(A, B);
 
-    const rAloc = [ 0.4, 0.3, 0];
-    const rBloc = [-0.4, 0.3, 0];
+    const rAloc = [0.8, -0.3, 0.1];
+    const rBloc = [-0.8, -0.3, -0.1];
     const pA0 = vAdd(A.x, quatRotate(A.q, rAloc));
     const pB0 = vAdd(B.x, quatRotate(B.q, rBloc));
     const restLen = vLen(vSub(pA0, pB0));
@@ -118,7 +120,7 @@ function _scenePart2(kind) {
     });
   }
   const floor = makeBody({
-    x: [0, -1, 0],
+    x: [0, -3, 0],
     halfExtents: [8, 0.5, 8],
     static: true, color: [60, 70, 80],
   });
