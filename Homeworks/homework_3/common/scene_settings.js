@@ -82,7 +82,7 @@ function bindSliderToParameter(slId, lblId, setter, fmt) {
   });
 }
 
-function updateUIElement(id, val) {
+function setElementTextContent(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }
@@ -104,8 +104,8 @@ function setupUIControls() {
   if (resetBtn) {
     resetBtn.addEventListener('click', function() {
       initializeScene(simulation.sceneId);
-      if (typeof _refreshBroadphaseEnabled === 'function') {
-        _refreshBroadphaseEnabled(SCENE_CONFIGURATIONS[simulation.sceneId]);
+      if (typeof updateBroadphaseButtonsState === 'function') {
+        updateBroadphaseButtonsState(SCENE_CONFIGURATIONS[simulation.sceneId]);
       }
       simulation.paused = pausedState;
       if (pauseBtn) {
@@ -124,6 +124,6 @@ function setupUIControls() {
 }
 
 // Default empty refreshStatisticsDisplay - override in task-specific scene.js
-function refreshStatisticsDisplay() {
+function updateStatisticsPanel() {
   // Override in task-specific files
 }

@@ -24,29 +24,29 @@ document.addEventListener('DOMContentLoaded', function() {
       if (val === '1A') {
         localBranch.style.display = 'none';
         gyroBranch.style.display = 'none';
-        _loadSceneWithDefaults('1A');
+        loadSceneWithDefaultSettings('1A');
       } else if (val === '1B_parent') {
         localBranch.style.display = 'block';
         gyroBranch.style.display = 'none';
         document.querySelector('[data-val="1B"]').classList.add('active');
-        _loadSceneWithDefaults('1B');
+        loadSceneWithDefaultSettings('1B');
       } else if (val === '1B') {
         gyroBranch.style.display = 'none';
         document.querySelector('[data-val="1B_parent"]').classList.add('active');
         this.classList.add('active');
-        _loadSceneWithDefaults('1B');
+        loadSceneWithDefaultSettings('1B');
       } else if (val === '1C_parent') {
         gyroBranch.style.display = 'block';
         document.querySelector('[data-val="1B_parent"]').classList.add('active');
         this.classList.add('active');
         document.querySelector('[data-val="1C"]').classList.add('active');
-        _loadSceneWithDefaults('1C');
+        loadSceneWithDefaultSettings('1C');
       } else if (val === '1C' || val === '1D') {
         gyroBranch.style.display = 'block';
         document.querySelector('[data-val="1B_parent"]').classList.add('active');
         document.querySelector('[data-val="1C_parent"]').classList.add('active');
         this.classList.add('active');
-        _loadSceneWithDefaults(val);
+        loadSceneWithDefaultSettings(val);
       }
     });
   });
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Task 1 specific updateMetrics for vector display
-function refreshStatisticsDisplay() {
+function updateStatisticsPanel() {
   if (simulation.bodies.length > 0 && simulation.part === 1) {
     const b = simulation.bodies[0];
     const L = computeAngularMomentum(b);
@@ -75,17 +75,17 @@ function refreshStatisticsDisplay() {
     const omegaLen = vectorLength(omega);
     
     // Vector display in bracket notation
-    updateUIElement('m-L0-vec', `(${L0[0].toFixed(3)}, ${L0[1].toFixed(3)}, ${L0[2].toFixed(3)})`);
-    updateUIElement('m-L-vec', `(${L[0].toFixed(3)}, ${L[1].toFixed(3)}, ${L[2].toFixed(3)})`);
+    setElementTextContent('m-L0-vec', `(${L0[0].toFixed(3)}, ${L0[1].toFixed(3)}, ${L0[2].toFixed(3)})`);
+    setElementTextContent('m-L-vec', `(${L[0].toFixed(3)}, ${L[1].toFixed(3)}, ${L[2].toFixed(3)})`);
     
-    updateUIElement('m-E',  E.toFixed(3));
-    updateUIElement('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
-    updateUIElement('m-omega', omegaLen.toFixed(3));
+    setElementTextContent('m-E',  E.toFixed(3));
+    setElementTextContent('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
+    setElementTextContent('m-omega', omegaLen.toFixed(3));
   } else {
-    updateUIElement('m-L0-vec', '—');
-    updateUIElement('m-L-vec', '—');
-    updateUIElement('m-E', '—');
-    updateUIElement('m-E0', '—');
-    updateUIElement('m-omega', '—');
+    setElementTextContent('m-L0-vec', '—');
+    setElementTextContent('m-L-vec', '—');
+    setElementTextContent('m-E', '—');
+    setElementTextContent('m-E0', '—');
+    setElementTextContent('m-omega', '—');
   }
 }

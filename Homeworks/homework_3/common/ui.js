@@ -1,63 +1,63 @@
-const PART_SCENES = {
+const SCENES_BY_PART = {
   1: ['1A', '1B', '1C', '1D'],
   2: ['2A', '2B', '2C', '2D'],
   3: ['3A', '3B'],
   4: ['4A'],
 };
 
-function initUI() {
+function setupUserInterface() {
   const partBtns = document.getElementById('part-btns');
   if (partBtns) {
-    _group('part-btns', v => {
+    setupButtonGroup('part-btns', v => {
       simulation.part = parseInt(v);
-      _rebuildSceneButtons();
-      _loadSceneWithDefaults(PART_SCENES[simulation.part][0]);
+      updateSceneButtonsPanel();
+      loadSceneWithDefaultSettings(SCENES_BY_PART[simulation.part][0]);
     });
   }
   
-  _rebuildSceneButtons();
+  updateSceneButtonsPanel();
 
   const solverBtns = document.getElementById('solver-btns');
   if (solverBtns) {
-    _group('solver-btns', v => { simulation.solver = v; _refreshVisibility(); });
+    setupButtonGroup('solver-btns', v => { simulation.solver = v; updateUIVisibility(); });
   }
   
   const postStabBtns = document.getElementById('poststab-btns');
   if (postStabBtns) {
-    _group('poststab-btns', v => { simulation.postStab = v; _refreshVisibility(); });
+    setupButtonGroup('poststab-btns', v => { simulation.postStab = v; updateUIVisibility(); });
   }
   
   const broadBtns = document.getElementById('broad-btns');
   if (broadBtns) {
-    _group('broad-btns', v => { simulation.broadphase = v; });
+    setupButtonGroup('broad-btns', v => { simulation.broadphase = v; });
   }
 
   const iterSlider = document.getElementById('s-iter');
-  if (iterSlider) _slider('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
+  if (iterSlider) setupSliderControl('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
   
   const compSlider = document.getElementById('s-comp');
-  if (compSlider) _slider('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
+  if (compSlider) setupSliderControl('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
   
   const betaSlider = document.getElementById('s-beta');
-  if (betaSlider) _slider('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
+  if (betaSlider) setupSliderControl('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
   
   const musSlider = document.getElementById('s-mus');
-  if (musSlider) _slider('s-mus',  'v-mus',  v => simulation.muStatic = v, v => v.toFixed(2));
+  if (musSlider) setupSliderControl('s-mus',  'v-mus',  v => simulation.muStatic = v, v => v.toFixed(2));
   
   const mudSlider = document.getElementById('s-mud');
-  if (mudSlider) _slider('s-mud',  'v-mud',  v => simulation.muDynamic = v, v => v.toFixed(2));
+  if (mudSlider) setupSliderControl('s-mud',  'v-mud',  v => simulation.muDynamic = v, v => v.toFixed(2));
   
   const restSlider = document.getElementById('s-rest');
-  if (restSlider) _slider('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
+  if (restSlider) setupSliderControl('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
   
   const gravSlider = document.getElementById('s-grav');
-  if (gravSlider) _slider('s-grav', 'v-grav', v => simulation.gravity = v, v => v.toFixed(2));
+  if (gravSlider) setupSliderControl('s-grav', 'v-grav', v => simulation.gravity = v, v => v.toFixed(2));
   
   const kSlider = document.getElementById('s-k');
-  if (kSlider) _slider('s-k',    'v-k',    v => _setSpringK(v), v => v.toFixed(0));
+  if (kSlider) setupSliderControl('s-k',    'v-k',    v => updateSpringStiffness(v), v => v.toFixed(0));
   
   const sdSlider = document.getElementById('s-sd');
-  if (sdSlider) _slider('s-sd',   'v-sd',   v => _setSpringDamping(v), v => v.toFixed(1));
+  if (sdSlider) setupSliderControl('s-sd',   'v-sd',   v => updateSpringDamping(v), v => v.toFixed(1));
 
   const pauseCheckbox = document.getElementById('s-pause');
   if (pauseCheckbox) {
@@ -69,14 +69,14 @@ function initUI() {
     resetBtn.addEventListener('click', () => initializeScene(simulation.sceneId));
   }
 
-  _refreshVisibility();
+  updateUIVisibility();
 }
 
-function _rebuildSceneButtons() {
+function updateSceneButtonsPanel() {
   const cont = document.getElementById('scene-btns');
   if (!cont) return;
   cont.innerHTML = '';
-  const list = PART_SCENES[simulation.part];
+  const list = SCENES_BY_PART[simulation.part];
   list.forEach((id, idx) => {
     const b = document.createElement('button');
     b.className = 'btn' + (idx === 0 ? ' active' : '');
@@ -85,25 +85,25 @@ function _rebuildSceneButtons() {
     b.addEventListener('click', () => {
       cont.querySelectorAll('.btn').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
-      _loadSceneWithDefaults(id);
+      loadSceneWithDefaultSettings(id);
     });
     cont.appendChild(b);
   });
 }
 
-function _loadSceneWithDefaults(id) {
+function loadSceneWithDefaultSettings(id) {
   initializeScene(id);
-  _applySceneDefaults(id);
-  _refreshBroadphaseEnabled(id);
-  _refreshVisibility();
+  applySceneSpecificSettings(id);
+  updateBroadphaseButtonsState(id);
+  updateUIVisibility();
 }
 
-function _applySceneDefaults(sc) {
+function applySceneSpecificSettings(sc) {
   if (sc === '4A' || sc === '3A' || sc === '3B') {
-    _setSolverButton('si');
+    setActiveSolverMethod('si');
   }
   const def = { '3A': 'brute', '3B': 'grid', '4A': 'sap' };
-  if (def[sc]) _setBroadButton(def[sc]);
+  if (def[sc]) setActiveBroadphaseMethod(def[sc]);
   
   // Adjust camera distance for large scenes
   if (sc === '3B' || sc === '4A') {
@@ -116,15 +116,15 @@ function _applySceneDefaults(sc) {
     simulation.part2Kind = sc;
   } else if (sc === '2C') {
     simulation.part2Kind = '2C';
-    _setSolverButton('xpbd');
+    setActiveSolverMethod('xpbd');
   } else if (sc === '2D') {
     simulation.part2Kind = '2D';
-    _setSolverButton('si');
+    setActiveSolverMethod('si');
     simulation.part2SI_PostStab = simulation.part2SI_PostStab || 'baumgarte';
   }
 }
 
-function _refreshBroadphaseEnabled(sc) {
+function updateBroadphaseButtonsState(sc) {
   const brBtns = document.querySelectorAll('#broad-btns .btn');
   if (brBtns.length === 0) return;
   brBtns.forEach(b => b.disabled = false);
@@ -136,7 +136,7 @@ function _refreshBroadphaseEnabled(sc) {
   }
 }
 
-function _refreshVisibility() {
+function updateUIVisibility() {
   const p = simulation.part;
   const sc = simulation.sceneId;
   const sv = simulation.solver;
@@ -152,29 +152,29 @@ function _refreshVisibility() {
   const isSI_Soft     = sc === '2D' && part2SI_PS === 'soft';
   const softPostStab  = (sc === '2D' && ps === 'soft');
 
-  _show('sec-solver',   isContactPart);
-  _show('sec-poststab', isSIActive);
-  _show('sec-broad',    isContactPart);
+  toggleElementVisibility('sec-solver',   isContactPart);
+  toggleElementVisibility('sec-poststab', isSIActive);
+  toggleElementVisibility('sec-broad',    isContactPart);
 
-  _show('row-k',    isPart2Spring || isSI_Soft || softPostStab);
-  _show('row-sd',   isPart2Spring || isSI_Soft || softPostStab);
+  toggleElementVisibility('row-k',    isPart2Spring || isSI_Soft || softPostStab);
+  toggleElementVisibility('row-sd',   isPart2Spring || isSI_Soft || softPostStab);
   
-  _show('row-iter', isPart2Spring || isPart2Dist || isContactPart);
-  _show('row-comp', isXPBDActive);
-  _show('row-beta', isSI_Baumgarte || isSI_Soft || (isContactPart && sv === 'si'));
-  _show('row-rest', isSIActive || isContactPart);
+  toggleElementVisibility('row-iter', isPart2Spring || isPart2Dist || isContactPart);
+  toggleElementVisibility('row-comp', isXPBDActive);
+  toggleElementVisibility('row-beta', isSI_Baumgarte || isSI_Soft || (isContactPart && sv === 'si'));
+  toggleElementVisibility('row-rest', isSIActive || isContactPart);
   
-  _show('row-mus',  p === 4 && isXPBDActive);
-  _show('row-mud',  isContactPart);
-  _show('row-grav', isPart2Spring);
+  toggleElementVisibility('row-mus',  p === 4 && isXPBDActive);
+  toggleElementVisibility('row-mud',  isContactPart);
+  toggleElementVisibility('row-grav', isPart2Spring);
 }
 
-function _show(id, visible) {
+function toggleElementVisibility(id, visible) {
   const el = document.getElementById(id);
   if (el) el.style.display = visible ? '' : 'none';
 }
 
-function _setBroadButton(val) {
+function setActiveBroadphaseMethod(val) {
   simulation.broadphase = val;
   const btns = document.querySelectorAll('#broad-btns .btn');
   if (btns.length === 0) return;
@@ -184,7 +184,7 @@ function _setBroadButton(val) {
   });
 }
 
-function _setSolverButton(val) {
+function setActiveSolverMethod(val) {
   simulation.solver = val;
   const btns = document.querySelectorAll('#solver-btns .btn');
   if (btns.length === 0) return;
@@ -194,16 +194,16 @@ function _setSolverButton(val) {
   });
 }
 
-function _setSpringK(v) {
+function updateSpringStiffness(v) {
   simulation.springK = v;
   for (const s of simulation.springs) s.k = v;
 }
-function _setSpringDamping(v) {
+function updateSpringDamping(v) {
   simulation.springDamping = v;
   for (const s of simulation.springs) s.c = v;
 }
 
-function refreshStatisticsDisplay() {
+function updateStatisticsPanel() {
   if (simulation.part === 1) {
     const b = simulation.bodies[0];
     const L = computeAngularMomentum(b);
@@ -212,28 +212,28 @@ function refreshStatisticsDisplay() {
     const omega = b.w || [0,0,0];
     const omegaLen = vectorLength(omega);
     
-    updateUIElement('m-L0x', L0[0].toFixed(3));
-    updateUIElement('m-L0y', L0[1].toFixed(3));
-    updateUIElement('m-L0z', L0[2].toFixed(3));
+    setElementTextContent('m-L0x', L0[0].toFixed(3));
+    setElementTextContent('m-L0y', L0[1].toFixed(3));
+    setElementTextContent('m-L0z', L0[2].toFixed(3));
     
-    updateUIElement('m-Lx', L[0].toFixed(3));
-    updateUIElement('m-Ly', L[1].toFixed(3));
-    updateUIElement('m-Lz', L[2].toFixed(3));
+    setElementTextContent('m-Lx', L[0].toFixed(3));
+    setElementTextContent('m-Ly', L[1].toFixed(3));
+    setElementTextContent('m-Lz', L[2].toFixed(3));
     
-    updateUIElement('m-E',  E.toFixed(3));
-    updateUIElement('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
-    updateUIElement('m-omega', omegaLen.toFixed(3));
+    setElementTextContent('m-E',  E.toFixed(3));
+    setElementTextContent('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
+    setElementTextContent('m-omega', omegaLen.toFixed(3));
   } else if (simulation.part === 2) {
-    updateUIElement('m-k', simulation.springK ? simulation.springK.toFixed(0) : '200');
-    updateUIElement('m-sd', simulation.springDamping ? simulation.springDamping.toFixed(1) : '4.0');
+    setElementTextContent('m-k', simulation.springK ? simulation.springK.toFixed(0) : '200');
+    setElementTextContent('m-sd', simulation.springDamping ? simulation.springDamping.toFixed(1) : '4.0');
     
-    if (simulation.iterations) updateUIElement('m-iter', String(simulation.iterations));
-    if (simulation.compliance !== undefined) updateUIElement('m-comp', simulation.compliance.toFixed(4));
-    if (simulation.baumgarteBeta !== undefined) updateUIElement('m-beta', simulation.baumgarteBeta.toFixed(2));
+    if (simulation.iterations) setElementTextContent('m-iter', String(simulation.iterations));
+    if (simulation.compliance !== undefined) setElementTextContent('m-comp', simulation.compliance.toFixed(4));
+    if (simulation.baumgarteBeta !== undefined) setElementTextContent('m-beta', simulation.baumgarteBeta.toFixed(2));
   }
 }
 
-function _group(id, fn) {
+function setupButtonGroup(id, fn) {
   const g = document.getElementById(id);
   if (!g) return;
   g.querySelectorAll('.btn').forEach(b => {
@@ -246,7 +246,7 @@ function _group(id, fn) {
   });
 }
 
-function _slider(elId, lblId, setter, fmt) {
+function setupSliderControl(elId, lblId, setter, fmt) {
   const el = document.getElementById(elId);
   if (!el) return;
   el.addEventListener('input', () => {
@@ -257,7 +257,7 @@ function _slider(elId, lblId, setter, fmt) {
   });
 }
 
-function updateUIElement(id, val) {
+function setElementTextContent(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }

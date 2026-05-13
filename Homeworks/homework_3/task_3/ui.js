@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
       sceneButtons.forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       
-      _loadSceneWithDefaults(val);
+      loadSceneWithDefaultSettings(val);
     });
   });
   
@@ -43,9 +43,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Task 3 updateMetrics - show only dynamic bodies count
-function refreshStatisticsDisplay() {
+function updateStatisticsPanel() {
   if (simulation.part === 3) {
     const dynamicBodies = simulation.bodies.filter(b => !b.isStatic).length;
-    updateUIElement('m-bodies', String(dynamicBodies));
+    setElementTextContent('m-bodies', String(dynamicBodies));
   }
 }

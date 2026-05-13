@@ -54,9 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Task 4 updateMetrics - show only dynamic bodies count
-function refreshStatisticsDisplay() {
+function updateStatisticsPanel() {
   if (simulation.part === 4) {
     const dynamicBodies = simulation.bodies.filter(b => !b.isStatic).length;
-    updateUIElement('m-bodies', String(dynamicBodies));
+    setElementTextContent('m-bodies', String(dynamicBodies));
   }
 }

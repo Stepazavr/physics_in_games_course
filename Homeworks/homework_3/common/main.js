@@ -42,11 +42,11 @@ function setup() {
     elapsed: 0,
   };
 
-  initUI();
+  setupUserInterface();
   initializeScene(initialScene);
-  _applySceneDefaults(initialScene);
-  _refreshBroadphaseEnabled(initialScene);
-  _refreshVisibility();
+  applySceneSpecificSettings(initialScene);
+  updateBroadphaseButtonsState(initialScene);
+  updateUIVisibility();
 }
 
 function draw() {
@@ -68,7 +68,7 @@ function draw() {
   if (!simulation.paused) updateSimulation();
 
   drawScene();
-  refreshStatisticsDisplay();
+  updateStatisticsPanel();
 }
 
 function updateSimulation() {
