@@ -9,11 +9,25 @@ const SCENES = {
   '2C': { part: 2, label: '2C · distance XPBD', kind: 'distXPBD' },
   '2D': { part: 2, label: '2D · distance SI',   kind: 'distSI' },
 
-  '3A': { part: 3, label: '3A · 10 boxes',     kind: 'stack' },
-  '3B': { part: 3, label: '3B · 1000 boxes',   kind: 'pile' },
+  '3A': { part: 3, label: '3A · 10 кубиков (Bruteforce)',     kind: 'stack' },
+  '3B': { part: 3, label: '3B · 1000 кубиков (SpatialGrid)',   kind: 'pile' },
 
   '4A': { part: 4, label: '4A · varied sizes', kind: 'varied' },
 };
+
+// Palette of 10 bright colors for cubes
+const BRIGHT_COLORS = [
+  [255, 100, 100],  // Bright red
+  [255, 180, 50],   // Bright orange
+  [255, 255, 100],  // Bright yellow
+  [150, 255, 100],  // Bright lime
+  [100, 255, 150],  // Bright cyan-green
+  [100, 200, 255],  // Bright light blue
+  [100, 150, 255],  // Bright blue
+  [200, 100, 255],  // Bright purple
+  [255, 100, 200],  // Bright pink
+  [255, 150, 100],  // Bright coral
+];
 
 function loadScene(id) {
   const def = SCENES[id];
@@ -67,7 +81,7 @@ function _scenePart1() {
 
   const floor = makeBody({
     x: [0, -3, 0],
-    halfExtents: [8, 0.5, 8],
+    halfExtents: [8, 0.2, 8],
     static: true, color: [60, 70, 80],
   });
   sim.bodies.push(floor);
@@ -121,7 +135,7 @@ function _scenePart2(kind) {
   }
   const floor = makeBody({
     x: [0, -3, 0],
-    halfExtents: [8, 0.5, 8],
+    halfExtents: [8, 0.2, 8],
     static: true, color: [60, 70, 80],
   });
   sim.bodies.push(floor);
@@ -131,41 +145,68 @@ function _scenePart2(kind) {
 function _sceneStack() {
   const floor = makeBody({
     x: [0, 0, 0],
-    halfExtents: [6, 0.5, 6],
+    halfExtents: [6, 0.20, 6],
     static: true, color: [60, 70, 80],
   });
   sim.bodies.push(floor);
+  
+  // Invisible walls (marked with invisible flag)
+  const wallH = 3;
+  const wall1 = makeBody({ x: [ 6.0, wallH, 0], halfExtents: [0.4, wallH, 6], static: true });
+  wall1.invisible = true;
+  sim.bodies.push(wall1);
+  const wall2 = makeBody({ x: [-6.0, wallH, 0], halfExtents: [0.4, wallH, 6], static: true });
+  wall2.invisible = true;
+  sim.bodies.push(wall2);
+  const wall3 = makeBody({ x: [0, wallH,  6.0], halfExtents: [6, wallH, 0.4], static: true });
+  wall3.invisible = true;
+  sim.bodies.push(wall3);
+  const wall4 = makeBody({ x: [0, wallH, -6.4], halfExtents: [6, wallH, 0.4], static: true });
+  wall4.invisible = true;
+  sim.bodies.push(wall4);
+  
   for (let i = 0; i < 10; i++) {
     const jx = (Math.random() - 0.5) * 0.02;
     const jz = (Math.random() - 0.5) * 0.02;
+    const colorIdx = i % BRIGHT_COLORS.length;
     const b = makeBody({
-      x: [jx, 0.9 + i * 0.62, jz],
-      halfExtents: [0.4, 0.3, 0.4],
-      m: 1, color: [120 + i*8, 160, 220 - i*6],
+      x: [jx, 0.9 + i * 2.22, jz],
+      halfExtents: [0.6, 0.6, 0.6],
+      m: 1, color: BRIGHT_COLORS[colorIdx].slice(),
     });
+    b.v = [jx * 100, 0, jz * 100];
     sim.bodies.push(b);
   }
 }
 
 function _scenePile() {
-  const floor = makeBody({ x: [0, 0, 0], halfExtents: [8, 0.5, 8], static: true });
+  const floor = makeBody({ x: [0, 0, 0], halfExtents: [8, 0.2, 8], static: true });
   sim.bodies.push(floor);
   const wallH = 4;
-  sim.bodies.push(makeBody({ x: [ 8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true }));
-  sim.bodies.push(makeBody({ x: [-8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true }));
-  sim.bodies.push(makeBody({ x: [0, wallH,  8.4], halfExtents: [8, wallH, 0.4], static: true }));
-  sim.bodies.push(makeBody({ x: [0, wallH, -8.4], halfExtents: [8, wallH, 0.4], static: true }));
+  const wall1 = makeBody({ x: [ 8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  wall1.invisible = true;
+  sim.bodies.push(wall1);
+  const wall2 = makeBody({ x: [-8.4, wallH, 0], halfExtents: [0.4, wallH, 8], static: true });
+  wall2.invisible = true;
+  sim.bodies.push(wall2);
+  const wall3 = makeBody({ x: [0, wallH,  8.4], halfExtents: [8, wallH, 0.4], static: true });
+  wall3.invisible = true;
+  sim.bodies.push(wall3);
+  const wall4 = makeBody({ x: [0, wallH, -8.4], halfExtents: [8, wallH, 0.4], static: true });
+  wall4.invisible = true;
+  sim.bodies.push(wall4);
 
-  const COUNT = 800;
+  const COUNT = 1000;
   for (let i = 0; i < COUNT; i++) {
     const x = (Math.random() - 0.5) * 14;
     const z = (Math.random() - 0.5) * 14;
     const y = 1.5 + Math.random() * 18;
+    const colorIdx = i % BRIGHT_COLORS.length;
     const b = makeBody({
       x: [x, y, z],
       halfExtents: [0.25, 0.25, 0.25],
       m: 1,
-      color: [60 + Math.random()*180, 60 + Math.random()*180, 60 + Math.random()*180],
+      color: BRIGHT_COLORS[colorIdx].slice(),
     });
     b.q = quatFromAxisAngle(vNorm([Math.random()-0.5, Math.random()-0.5, Math.random()-0.5]),
                             Math.random() * Math.PI);
@@ -174,7 +215,7 @@ function _scenePile() {
 }
 
 function _sceneVaried() {
-  const floor = makeBody({ x: [0, 0, 0], halfExtents: [10, 0.5, 10], static: true });
+  const floor = makeBody({ x: [0, 0, 0], halfExtents: [10, 0.2, 10], static: true });
   sim.bodies.push(floor);
   sim.bodies.push(makeBody({ x: [ 10, 4, 0], halfExtents: [0.4, 4, 10], static: true }));
   sim.bodies.push(makeBody({ x: [-10, 4, 0], halfExtents: [0.4, 4, 10], static: true }));

@@ -347,7 +347,7 @@ function _drawScene() {
 
   if (sim.part === 1) _drawAngularMomentumArrows();
   if (sim.part === 2) _drawJoints();
-  if (sim.part >= 3) _drawContacts();
+  if (sim.part >= 3 && sim.sceneId !== '3A') _drawContacts();
 }
 
 function _drawAngularMomentumArrows() {

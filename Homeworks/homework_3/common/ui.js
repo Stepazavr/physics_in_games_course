@@ -154,12 +154,12 @@ function _refreshVisibility() {
   
   _show('row-iter', isPart2Spring || isPart2Dist || isContactPart);
   _show('row-comp', isXPBDActive);
-  _show('row-beta', isSI_Baumgarte || isSI_Soft);
+  _show('row-beta', isSI_Baumgarte || isSI_Soft || (isContactPart && sv === 'si'));
   _show('row-rest', isSIActive || isContactPart);
   
   _show('row-mus',  p === 4 && isXPBDActive);
   _show('row-mud',  isContactPart);
-  _show('row-grav', isPart2Spring || isContactPart);
+  _show('row-grav', isPart2Spring);
 }
 
 function _show(id, visible) {

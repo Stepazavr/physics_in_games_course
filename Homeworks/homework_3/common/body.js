@@ -64,6 +64,7 @@ function updateAABB(body) {
 }
 
 function drawBody(body) {
+  if (body.invisible) return;
   push();
     translate(body.x[0], body.x[1], body.x[2]);
     const q = body.q;
