@@ -48,17 +48,17 @@ function initializeScene(id) {
 
   if (def.part === 1) {
     simulation.freeRotMode = def.mode;
-    _scenePart1();
+    buildFreeRotationScene();
   } else if (def.part === 2) {
     simulation.part2Kind = def.kind;
-    _scenePart2(def.kind);
+    buildConstraintScene(def.kind);
   } else if (def.part === 3) {
     simulation.part3Kind = def.kind;
-    if (def.kind === 'stack') _sceneStack();
-    else _scenePile();
+    if (def.kind === 'stack') buildStackScene();
+    else buildPileScene();
   } else if (def.part === 4) {
     simulation.part4Kind = def.kind;
-    _sceneVaried();
+    buildVariedScene();
   }
 
   if (def.part === 1) {

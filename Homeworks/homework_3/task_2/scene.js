@@ -1,4 +1,4 @@
-function _scenePart2(kind) {
+function buildConstraintScene(kind) {
   if (kind === 'springForce' || kind === 'springSoft') {
     const b = makeFigure({
       x: [0, 1.0, 0],

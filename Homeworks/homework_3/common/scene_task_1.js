@@ -1,4 +1,4 @@
-function _scenePart1() {
+function buildFreeRotationScene() {
   const b = makeFigure({
     x: [0, 0, 0],
     halfExtents: [1.5, 0.5, 0.25],

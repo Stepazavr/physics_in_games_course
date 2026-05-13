@@ -1,5 +1,5 @@
 
-function _sceneStack() {
+function buildStackScene() {
   const floor = makeFigure({
     x: [0, 0, 0],
     halfExtents: [6, 0.2, 6],
@@ -36,7 +36,7 @@ function _sceneStack() {
   }
 }
 
-function _scenePile() {
+function buildPileScene() {
   const floor = makeFigure({ x: [0, 0, 0], halfExtents: [8, 0.2, 8], static: true, color: [60, 70, 80] });
   simulation.bodies.push(floor);
   const wallH = 4;
