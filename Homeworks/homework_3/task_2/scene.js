@@ -10,7 +10,7 @@ function _scenePart2(kind) {
     sim.bodies.push(b);
     const rLocal = [1.2, 0.3, 0];
     sim.springs.push({
-      bodyIdx: 0,
+      figureIdx: 0,
       rLocal,
       pWorld: [0, 4.5, 0],
       restLen: 3.2,

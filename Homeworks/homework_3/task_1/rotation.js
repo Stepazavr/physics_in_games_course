@@ -1,66 +1,66 @@
-function freeRotStep(body, dt, mode) {
-  if (body.invM === 0) return;
+function freeRotStep(figure, dt, mode) {
+  if (figure.invM === 0) return;
 
-  if (mode === '1A') _rot1A(body, dt);
-  else if (mode === '1B') _rot1B(body, dt);
-  else if (mode === '1C') _rot1C(body, dt);
-  else _rot1D(body, dt);
+  if (mode === '1A') _rot1A(figure, dt);
+  else if (mode === '1B') _rot1B(figure, dt);
+  else if (mode === '1C') _rot1C(figure, dt);
+  else _rot1D(figure, dt);
 
-  body.x[0] += body.v[0] * dt;
-  body.x[1] += body.v[1] * dt;
-  body.x[2] += body.v[2] * dt;
+  figure.x[0] += figure.v[0] * dt;
+  figure.x[1] += figure.v[1] * dt;
+  figure.x[2] += figure.v[2] * dt;
 }
 
-function _rot1A(body, dt) {
-  if (!body._L) body._L = computeAngularMomentum(body);
-  const Iw_inv = worldInertiaInv(body);
-  const w = mat3MulVec(Iw_inv, body._L);
-  body.w = w;
-  body.q = quatIntegrate(body.q, w, dt);
+function _rot1A(figure, dt) {
+  if (!figure._L) figure._L = computeAngularMomentum(figure);
+  const Iw_inv = worldInertiaInv(figure);
+  const w = mat3MulVec(Iw_inv, figure._L);
+  figure.w = w;
+  figure.q = quatIntegrate(figure.q, w, dt);
 }
 
-function _ensureWBody(body) {
-  if (!body.wBody) {
-    const R = quatToMat3(body.q);
+function _ensureWfigure(figure) {
+  if (!figure.wfigure) {
+    const R = quatToMat3(figure.q);
     const Rt = mat3Transpose(R);
-    body.wBody = mat3MulVec(Rt, body.w);
+    figure.wfigure = mat3MulVec(Rt, figure.w);
   }
 }
 
-function _rot1B(body, dt) {
-  _ensureWBody(body);
-  const R = quatToMat3(body.q);
-  const w_world = mat3MulVec(R, body.wBody);
-  body.w = w_world;
-  body.q = quatIntegrate(body.q, w_world, dt);
-  const R_new = quatToMat3(body.q);
-  body.w = mat3MulVec(R_new, body.wBody);
+function _rot1B(figure, dt) {
+  _ensureWfigure(figure);
+  const R = quatToMat3(figure.q);
+  const w_world = mat3MulVec(R, figure.wfigure);
+  figure.w = w_world;
+  figure.q = quatIntegrate(figure.q, w_world, dt);
+  const R_new = quatToMat3(figure.q);
+  figure.w = mat3MulVec(R_new, figure.wfigure);
 }
 
-function _rot1C(body, dt) {
-  _ensureWBody(body);
-  const Ib = body.Ibody, IbInv = body.IbodyInv;
-  const w_body = body.wBody;
-  const Iw_b = [Ib[0]*w_body[0], Ib[1]*w_body[1], Ib[2]*w_body[2]];
-  const gyro = vCross(w_body, Iw_b);
-  body.wBody = [
-    w_body[0] - dt * IbInv[0] * gyro[0],
-    w_body[1] - dt * IbInv[1] * gyro[1],
-    w_body[2] - dt * IbInv[2] * gyro[2],
+function _rot1C(figure, dt) {
+  _ensureWfigure(figure);
+  const Ib = figure.Ifigure, IbInv = figure.IfigureInv;
+  const w_figure = figure.wfigure;
+  const Iw_b = [Ib[0]*w_figure[0], Ib[1]*w_figure[1], Ib[2]*w_figure[2]];
+  const gyro = vCross(w_figure, Iw_b);
+  figure.wfigure = [
+    w_figure[0] - dt * IbInv[0] * gyro[0],
+    w_figure[1] - dt * IbInv[1] * gyro[1],
+    w_figure[2] - dt * IbInv[2] * gyro[2],
   ];
-  const R = quatToMat3(body.q);
-  const w_world = mat3MulVec(R, body.wBody);
-  body.w = w_world;
-  body.q = quatIntegrate(body.q, w_world, dt);
-  const R_new = quatToMat3(body.q);
-  body.w = mat3MulVec(R_new, body.wBody);
+  const R = quatToMat3(figure.q);
+  const w_world = mat3MulVec(R, figure.wfigure);
+  figure.w = w_world;
+  figure.q = quatIntegrate(figure.q, w_world, dt);
+  const R_new = quatToMat3(figure.q);
+  figure.w = mat3MulVec(R_new, figure.wfigure);
 }
 
-function _rot1D(body, dt) {
-  _ensureWBody(body);
-  const Ib = body.Ibody;
+function _rot1D(figure, dt) {
+  _ensureWfigure(figure);
+  const Ib = figure.Ifigure;
   const I_diag = [Ib[0],0,0, 0,Ib[1],0, 0,0,Ib[2]];
-  const w0 = body.wBody;
+  const w0 = figure.wfigure;
   const Iw0 = [Ib[0]*w0[0], Ib[1]*w0[1], Ib[2]*w0[2]];
 
   let wp = w0.slice();
@@ -80,31 +80,31 @@ function _rot1D(body, dt) {
     wp = vAdd(wp, dWp);
     if (vDot(dWp, dWp) < 1e-18) break;
   }
-  body.wBody = wp;
-  const R = quatToMat3(body.q);
+  figure.wfigure = wp;
+  const R = quatToMat3(figure.q);
   const w_world = mat3MulVec(R, wp);
-  body.w = w_world;
-  body.q = quatIntegrate(body.q, w_world, dt);
-  const R_new = quatToMat3(body.q);
-  body.w = mat3MulVec(R_new, body.wBody);
+  figure.w = w_world;
+  figure.q = quatIntegrate(figure.q, w_world, dt);
+  const R_new = quatToMat3(figure.q);
+  figure.w = mat3MulVec(R_new, figure.wfigure);
 }
 
-function integrateAngularImplicit(body, torqueWorld, dt) {
-  if (body.invM === 0) return;
-  const R = quatToMat3(body.q);
+function integrateAngularImplicit(figure, torqueWorld, dt) {
+  if (figure.invM === 0) return;
+  const R = quatToMat3(figure.q);
   const Rt = mat3Transpose(R);
-  const w_body = mat3MulVec(Rt, body.w);
-  const tau_body = mat3MulVec(Rt, torqueWorld);
-  const Ib = body.Ibody;
+  const w_figure = mat3MulVec(Rt, figure.w);
+  const tau_figure = mat3MulVec(Rt, torqueWorld);
+  const Ib = figure.Ifigure;
   const I_diag = [Ib[0],0,0, 0,Ib[1],0, 0,0,Ib[2]];
-  const Iw0 = [Ib[0]*w_body[0], Ib[1]*w_body[1], Ib[2]*w_body[2]];
+  const Iw0 = [Ib[0]*w_figure[0], Ib[1]*w_figure[1], Ib[2]*w_figure[2]];
   const rhs0 = [
-    Iw0[0] + dt * tau_body[0],
-    Iw0[1] + dt * tau_body[1],
-    Iw0[2] + dt * tau_body[2],
+    Iw0[0] + dt * tau_figure[0],
+    Iw0[1] + dt * tau_figure[1],
+    Iw0[2] + dt * tau_figure[2],
   ];
 
-  let wp = w_body.slice();
+  let wp = w_figure.slice();
   for (let it = 0; it < 3; it++) {
     const Iwp = [Ib[0]*wp[0], Ib[1]*wp[1], Ib[2]*wp[2]];
     const cross = vCross(wp, Iwp);
@@ -122,5 +122,5 @@ function integrateAngularImplicit(body, torqueWorld, dt) {
     if (vDot(dWp, dWp) < 1e-18) break;
   }
 
-  body.w = mat3MulVec(R, wp);
+  figure.w = mat3MulVec(R, wp);
 }

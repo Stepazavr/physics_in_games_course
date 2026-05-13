@@ -73,10 +73,10 @@ function boxInertia(m, h) {
   ];
 }
 
-function worldInertia(body) {
-  if (body.invM === 0) return mat3Zero();
-  const R = quatToMat3(body.q);
-  const Ib = body.Ibody;
+function worldInertia(figure) {
+  if (figure.invM === 0) return mat3Zero();
+  const R = quatToMat3(figure.q);
+  const Ib = figure.Ifigure;
   const RD = [
     R[0]*Ib[0], R[1]*Ib[1], R[2]*Ib[2],
     R[3]*Ib[0], R[4]*Ib[1], R[5]*Ib[2],
@@ -85,10 +85,10 @@ function worldInertia(body) {
   return mat3Mul(RD, mat3Transpose(R));
 }
 
-function worldInertiaInv(body) {
-  if (body.invM === 0) return mat3Zero();
-  const R = quatToMat3(body.q);
-  const Ii = body.IbodyInv;
+function worldInertiaInv(figure) {
+  if (figure.invM === 0) return mat3Zero();
+  const R = quatToMat3(figure.q);
+  const Ii = figure.IfigureInv;
   const RD = [
     R[0]*Ii[0], R[1]*Ii[1], R[2]*Ii[2],
     R[3]*Ii[0], R[4]*Ii[1], R[5]*Ii[2],
@@ -106,22 +106,22 @@ function vCross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1
 function vLen(a){ return Math.hypot(a[0],a[1],a[2]); }
 function vNorm(a){ const n = vLen(a); return n < 1e-12 ? [0,0,0] : [a[0]/n,a[1]/n,a[2]/n]; }
 
-function integrateAngularImplicit(body, torqueWorld, dt) {
-  if (body.invM === 0) return;
-  const R = quatToMat3(body.q);
+function integrateAngularImplicit(figure, torqueWorld, dt) {
+  if (figure.invM === 0) return;
+  const R = quatToMat3(figure.q);
   const Rt = mat3Transpose(R);
-  const w_body = mat3MulVec(Rt, body.w);
-  const tau_body = mat3MulVec(Rt, torqueWorld);
-  const Ib = body.Ibody;
+  const w_figure = mat3MulVec(Rt, figure.w);
+  const tau_figure = mat3MulVec(Rt, torqueWorld);
+  const Ib = figure.Ifigure;
   const I_diag = [Ib[0],0,0, 0,Ib[1],0, 0,0,Ib[2]];
-  const Iw0 = [Ib[0]*w_body[0], Ib[1]*w_body[1], Ib[2]*w_body[2]];
+  const Iw0 = [Ib[0]*w_figure[0], Ib[1]*w_figure[1], Ib[2]*w_figure[2]];
   const rhs0 = [
-    Iw0[0] + dt * tau_body[0],
-    Iw0[1] + dt * tau_body[1],
-    Iw0[2] + dt * tau_body[2],
+    Iw0[0] + dt * tau_figure[0],
+    Iw0[1] + dt * tau_figure[1],
+    Iw0[2] + dt * tau_figure[2],
   ];
 
-  let wp = w_body.slice();
+  let wp = w_figure.slice();
   for (let it = 0; it < 3; it++) {
     const Iwp = [Ib[0]*wp[0], Ib[1]*wp[1], Ib[2]*wp[2]];
     const cross = vCross(wp, Iwp);
@@ -139,7 +139,7 @@ function integrateAngularImplicit(body, torqueWorld, dt) {
     if (vDot(dWp, dWp) < 1e-18) break;
   }
 
-  body.w = mat3MulVec(R, wp);
+  figure.w = mat3MulVec(R, wp);
 }
 
 

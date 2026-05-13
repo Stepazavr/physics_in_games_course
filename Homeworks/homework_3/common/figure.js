@@ -9,20 +9,20 @@ function makeFigure(opts) {
   const m = isStatic ? 0 : (opts.m != null ? opts.m : 1);
   const invM = isStatic ? 0 : 1 / m;
 
-  let Ibody, IbodyInv;
+  let Ifigure, IfigureInv;
   if (isStatic) {
-    Ibody = [0, 0, 0];
-    IbodyInv = [0, 0, 0];
+    Ifigure = [0, 0, 0];
+    IfigureInv = [0, 0, 0];
   } else {
-    Ibody = boxInertia(m, halfExtents);
-    IbodyInv = [1/Ibody[0], 1/Ibody[1], 1/Ibody[2]];
+    Ifigure = boxInertia(m, halfExtents);
+    IfigureInv = [1/Ifigure[0], 1/Ifigure[1], 1/Ifigure[2]];
   }
 
   return {
     x: x.slice(), q: q.slice(),
     v: v.slice(), w: w.slice(),
     m, invM, halfExtents: halfExtents.slice(),
-    Ibody, IbodyInv,
+    Ifigure, IfigureInv,
     color: opts.color || [120, 170, 230],
     isStatic,
     prevX: x.slice(), prevQ: q.slice(),
@@ -30,27 +30,27 @@ function makeFigure(opts) {
   };
 }
 
-function bodyPointWorld(body, rLocal) {
-  return vAdd(body.x, quatRotate(body.q, rLocal));
+function figurePointWorld(figure, rLocal) {
+  return vAdd(figure.x, quatRotate(figure.q, rLocal));
 }
 
-function bodyPointVel(body, rWorld) {
-  const r = vSub(rWorld, body.x);
-  return vAdd(body.v, vCross(body.w, r));
+function figurePointVel(figure, rWorld) {
+  const r = vSub(rWorld, figure.x);
+  return vAdd(figure.v, vCross(figure.w, r));
 }
 
-function getFigureVerticesWorld(body) {
-  const h = body.halfExtents;
+function getFigureVerticesWorld(figure) {
+  const h = figure.halfExtents;
   const verts = [];
   for (let sx = -1; sx <= 1; sx += 2)
   for (let sy = -1; sy <= 1; sy += 2)
   for (let sz = -1; sz <= 1; sz += 2)
-    verts.push(vAdd(body.x, quatRotate(body.q, [sx*h[0], sy*h[1], sz*h[2]])));
+    verts.push(vAdd(figure.x, quatRotate(figure.q, [sx*h[0], sy*h[1], sz*h[2]])));
   return verts;
 }
 
-function updateBoundingBox(body) {
-  const verts = getFigureVerticesWorld(body);
+function updateBoundingBox(figure) {
+  const verts = getFigureVerticesWorld(figure);
   let mn = [Infinity,Infinity,Infinity], mx = [-Infinity,-Infinity,-Infinity];
   for (const p of verts) {
     if (p[0] < mn[0]) mn[0] = p[0];
@@ -60,44 +60,44 @@ function updateBoundingBox(body) {
     if (p[1] > mx[1]) mx[1] = p[1];
     if (p[2] > mx[2]) mx[2] = p[2];
   }
-  body.aabbMin = mn; body.aabbMax = mx;
+  figure.aabbMin = mn; figure.aabbMax = mx;
 }
 
-function drawFigure(body) {
-  if (body.invisible) return;
+function drawFigure(figure) {
+  if (figure.invisible) return;
   push();
-    translate(body.x[0], body.x[1], body.x[2]);
-    const q = body.q;
+    translate(figure.x[0], figure.x[1], figure.x[2]);
+    const q = figure.q;
     const cw = Math.max(-1, Math.min(1, q[0]));
     const s  = Math.sqrt(1 - cw * cw);
     if (s > 1e-6) {
       const ang = 2 * Math.acos(cw);
       rotate(ang, [q[1] / s, q[2] / s, q[3] / s]);
     }
-    const c = body.color;
+    const c = figure.color;
     noStroke();
-    if (body.isStatic) fill(70, 80, 95);
+    if (figure.isStatic) fill(70, 80, 95);
     else                fill(c[0], c[1], c[2]);
-    box(body.halfExtents[0]*2, body.halfExtents[1]*2, body.halfExtents[2]*2);
+    box(figure.halfExtents[0]*2, figure.halfExtents[1]*2, figure.halfExtents[2]*2);
   pop();
 }
 
-function computeAngularMomentum(body) {
-  const Iw = worldInertia(body);
-  return mat3MulVec(Iw, body.w);
+function computeAngularMomentum(figure) {
+  const Iw = worldInertia(figure);
+  return mat3MulVec(Iw, figure.w);
 }
 
-function computeKineticEnergy(body) {
-  if (body.invM === 0) return 0;
-  const lin = 0.5 * body.m * vDot(body.v, body.v);
-  const Iw  = worldInertia(body);
-  const Iww = mat3MulVec(Iw, body.w);
-  const rot = 0.5 * vDot(body.w, Iww);
+function computeKineticEnergy(figure) {
+  if (figure.invM === 0) return 0;
+  const lin = 0.5 * figure.m * vDot(figure.v, figure.v);
+  const Iw  = worldInertia(figure);
+  const Iww = mat3MulVec(Iw, figure.w);
+  const rot = 0.5 * vDot(figure.w, Iww);
   return lin + rot;
 }
 
-function getLocalAxesMatrix(body) {
-  const R = quatToMat3(body.q);
+function getLocalAxesMatrix(figure) {
+  const R = quatToMat3(figure.q);
   return [
     [R[0], R[3], R[6]],
     [R[1], R[4], R[7]],
@@ -105,8 +105,8 @@ function getLocalAxesMatrix(body) {
   ];
 }
 
-function projectBoxOnAxis(body, axis, axes) {
-  const h = body.halfExtents;
+function projectBoxOnAxis(figure, axis, axes) {
+  const h = figure.halfExtents;
   return Math.abs(vDot(axes[0], axis)) * h[0] +
          Math.abs(vDot(axes[1], axis)) * h[1] +
          Math.abs(vDot(axes[2], axis)) * h[2];
@@ -198,28 +198,28 @@ function detectBoxCollisionSAT(A, B) {
   return final;
 }
 
-function getVerticesWithLocalAndWorld(body) {
-  const h = body.halfExtents;
+function getVerticesWithLocalAndWorld(figure) {
+  const h = figure.halfExtents;
   const out = [];
   for (let sx = -1; sx <= 1; sx += 2)
   for (let sy = -1; sy <= 1; sy += 2)
   for (let sz = -1; sz <= 1; sz += 2) {
     const local = [sx*h[0], sy*h[1], sz*h[2]];
-    out.push({ local, world: vAdd(body.x, quatRotate(body.q, local)) });
+    out.push({ local, world: vAdd(figure.x, quatRotate(figure.q, local)) });
   }
   return out;
 }
 
-function isPointInsideBox(p, body) {
-  const local = quatRotateInv(body.q, vSub(p, body.x));
-  return Math.abs(local[0]) <= body.halfExtents[0] + 1e-4 &&
-         Math.abs(local[1]) <= body.halfExtents[1] + 1e-4 &&
-         Math.abs(local[2]) <= body.halfExtents[2] + 1e-4;
+function isPointInsideBox(p, figure) {
+  const local = quatRotateInv(figure.q, vSub(p, figure.x));
+  return Math.abs(local[0]) <= figure.halfExtents[0] + 1e-4 &&
+         Math.abs(local[1]) <= figure.halfExtents[1] + 1e-4 &&
+         Math.abs(local[2]) <= figure.halfExtents[2] + 1e-4;
 }
 
-function getPenetrationDepthAlongAxis(p, body, n, _) {
-  const local = quatRotateInv(body.q, vSub(p, body.x));
-  const h = body.halfExtents;
+function getPenetrationDepthAlongAxis(p, figure, n, _) {
+  const local = quatRotateInv(figure.q, vSub(p, figure.x));
+  const h = figure.halfExtents;
   const dx = h[0] - Math.abs(local[0]);
   const dy = h[1] - Math.abs(local[1]);
   const dz = h[2] - Math.abs(local[2]);

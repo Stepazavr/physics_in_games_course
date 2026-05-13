@@ -105,14 +105,14 @@ function _stepPart2(dt) {
   }
 
   if (kind === 'springForce') {
-    for (const s of sim.springs) applySpringForce(sim.bodies[s.bodyIdx], s, dt);
+    for (const s of sim.springs) applySpringForce(sim.bodies[s.figureIdx], s, dt);
     for (const b of sim.bodies) _angularImplicitStep(b, dt);
     for (const b of sim.bodies) _positionStep(b, dt);
   } else if (kind === 'springSoft') {
     for (const b of sim.bodies) _angularImplicitStep(b, dt);
     for (const s of sim.springs) s.lambdaAccum = 0;
     for (let it = 0; it < sim.iterations; it++)
-      for (const s of sim.springs) solveSpringSoft(sim.bodies[s.bodyIdx], s, dt);
+      for (const s of sim.springs) solveSpringSoft(sim.bodies[s.figureIdx], s, dt);
     for (const b of sim.bodies) _positionStep(b, dt);
   } else if (kind === 'distXPBD') {
     const sub = 4;
@@ -438,7 +438,7 @@ function _thinRod(a, b, radius, color, opacity = 1.0) {
 
 function _drawJoints() {
   for (const s of sim.springs) {
-    const A = sim.bodies[s.bodyIdx];
+    const A = sim.bodies[s.figureIdx];
     const pA = vAdd(A.x, quatRotate(A.q, s.rLocal));
     const pB = s.pWorld;
     const dLen = vLen(vSub(pA, pB));

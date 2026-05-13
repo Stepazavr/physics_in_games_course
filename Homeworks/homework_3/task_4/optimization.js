@@ -18,8 +18,8 @@ function _sapInsertEvents(sap, bodies) {
     sap.axes[a].length = 0;
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
-      sap.axes[a].push({ pos: b.aabbMin[a], isMax: false, body: i });
-      sap.axes[a].push({ pos: b.aabbMax[a], isMax: true,  body: i });
+      sap.axes[a].push({ pos: b.aabbMin[a], isMax: false, figure: i });
+      sap.axes[a].push({ pos: b.aabbMax[a], isMax: true,  figure: i });
     }
     sap.axes[a].sort((x, y) => x.pos - y.pos);
   }
@@ -27,7 +27,7 @@ function _sapInsertEvents(sap, bodies) {
 
 function _sapInsertionSort(arr, bodies, axis) {
   for (const e of arr) {
-    e.pos = e.isMax ? bodies[e.body].aabbMax[axis] : bodies[e.body].aabbMin[axis];
+    e.pos = e.isMax ? bodies[e.figure].aabbMax[axis] : bodies[e.figure].aabbMin[axis];
   }
   for (let i = 1; i < arr.length; i++) {
     const cur = arr[i];
@@ -52,13 +52,13 @@ function broadphaseSAP(bodies, sap) {
     const active = new Set();
     for (const e of sap.axes[a]) {
       if (e.isMax) {
-        active.delete(e.body);
+        active.delete(e.figure);
       } else {
         for (const other of active) {
-          const lo = Math.min(other, e.body), hi = Math.max(other, e.body);
+          const lo = Math.min(other, e.figure), hi = Math.max(other, e.figure);
           overlaps[a].add(lo * 1000003 + hi);
         }
-        active.add(e.body);
+        active.add(e.figure);
       }
     }
   }
@@ -107,10 +107,10 @@ function broadphaseLBVH(bodies) {
 
   function buildNode(lo, hi) {
     if (lo === hi) {
-      const body = bodies[entries[lo].bi];
+      const figure = bodies[entries[lo].bi];
       return {
         leaf: true, bi: entries[lo].bi,
-        aabbMin: body.aabbMin, aabbMax: body.aabbMax,
+        aabbMin: figure.aabbMin, aabbMax: figure.aabbMax,
       };
     }
     const mid = (lo + hi) >> 1;
