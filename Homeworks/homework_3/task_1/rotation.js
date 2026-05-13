@@ -1,17 +1,17 @@
-function freeRotStep(figure, dt, mode) {
+function updateFreeRotationStep(figure, dt, mode) {
   if (figure.invM === 0) return;
 
-  if (mode === '1A') _rot1A(figure, dt);
-  else if (mode === '1B') _rot1B(figure, dt);
-  else if (mode === '1C') _rot1C(figure, dt);
-  else _rot1D(figure, dt);
+  if (mode === '1A') integrateRotationGlobalMomentum(figure, dt);
+  else if (mode === '1B') integrateRotationLocalVelocity(figure, dt);
+  else if (mode === '1C') integrateRotationExplicitGyro(figure, dt);
+  else integrateRotationImplicitGyro(figure, dt);
 
   figure.x[0] += figure.v[0] * dt;
   figure.x[1] += figure.v[1] * dt;
   figure.x[2] += figure.v[2] * dt;
 }
 
-function _rot1A(figure, dt) {
+function integrateRotationGlobalMomentum(figure, dt) {
   if (!figure._L) figure._L = computeAngularMomentum(figure);
   const Iw_inv = transformToWorldInertiaInv(figure);
   const w = multiplyMatrix3Vector(Iw_inv, figure._L);
@@ -19,7 +19,7 @@ function _rot1A(figure, dt) {
   figure.q = integrateQuaternion(figure.q, w, dt);
 }
 
-function _ensureWfigure(figure) {
+function ensureLocalAngularVelocity(figure) {
   if (!figure.wfigure) {
     const R = quaternionToMatrix3(figure.q);
     const Rt = transposeMatrix3(R);
@@ -27,8 +27,8 @@ function _ensureWfigure(figure) {
   }
 }
 
-function _rot1B(figure, dt) {
-  _ensureWfigure(figure);
+function integrateRotationLocalVelocity(figure, dt) {
+  ensureLocalAngularVelocity(figure);
   const R = quaternionToMatrix3(figure.q);
   const w_world = multiplyMatrix3Vector(R, figure.wfigure);
   figure.w = w_world;
@@ -37,8 +37,8 @@ function _rot1B(figure, dt) {
   figure.w = multiplyMatrix3Vector(R_new, figure.wfigure);
 }
 
-function _rot1C(figure, dt) {
-  _ensureWfigure(figure);
+function integrateRotationExplicitGyro(figure, dt) {
+  ensureLocalAngularVelocity(figure);
   const Ib = figure.Ifigure, IbInv = figure.IfigureInv;
   const w_figure = figure.wfigure;
   const Iw_b = [Ib[0]*w_figure[0], Ib[1]*w_figure[1], Ib[2]*w_figure[2]];
@@ -56,8 +56,8 @@ function _rot1C(figure, dt) {
   figure.w = multiplyMatrix3Vector(R_new, figure.wfigure);
 }
 
-function _rot1D(figure, dt) {
-  _ensureWfigure(figure);
+function integrateRotationImplicitGyro(figure, dt) {
+  ensureLocalAngularVelocity(figure);
   const Ib = figure.Ifigure;
   const I_diag = [Ib[0],0,0, 0,Ib[1],0, 0,0,Ib[2]];
   const w0 = figure.wfigure;

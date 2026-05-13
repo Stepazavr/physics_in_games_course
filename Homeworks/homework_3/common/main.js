@@ -90,7 +90,7 @@ function updateSimulation() {
 
 function updateFreeRotation(dt) {
   const b = simulation.bodies[0];
-  freeRotStep(b, dt, simulation.freeRotMode);
+  updateFreeRotationStep(b, dt, simulation.freeRotMode);
 }
 
 function updateConstraints(dt) {
