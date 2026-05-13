@@ -1,4 +1,4 @@
-function siDistanceConstraint(A, B, c, mode, params, dt) {
+function applyDistanceConstraintSI(A, B, c, mode, params, dt) {
   const rA = quatRotate(A.q, c.rAloc);
   const rB = quatRotate(B.q, c.rBloc);
   const pA = vAdd(A.x, rA);
@@ -40,13 +40,13 @@ function siDistanceConstraint(A, B, c, mode, params, dt) {
   c.lambdaAccum += lambda;
 
   const P = vMul(n, lambda);
-  _applyImpulse(A,  P, rA, IAi);
-  _applyImpulse(B, vMul(P, -1), rB, IBi);
+  applyVelocityImpulse(A,  P, rA, IAi);
+  applyVelocityImpulse(B, vMul(P, -1), rB, IBi);
 
   return Math.abs(C);
 }
 
-function siDistancePosPass(A, B, c) {
+function correctDistancePosition(A, B, c) {
   const rA = quatRotate(A.q, c.rAloc);
   const rB = quatRotate(B.q, c.rBloc);
   const pA = vAdd(A.x, rA);
@@ -71,17 +71,17 @@ function siDistancePosPass(A, B, c) {
   if (A.invM > 0) {
     A.x = vAdd(A.x, vMul(P, A.invM));
     const dq = mat3MulVec(IAi, vCross(rA, P));
-    _applyQuatDelta(A, dq);
+    applyRotationDelta(A, dq);
   }
   if (B.invM > 0) {
     B.x = vSub(B.x, vMul(P, B.invM));
     const dq = mat3MulVec(IBi, vCross(rB, vMul(P, -1)));
-    _applyQuatDelta(B, dq);
+    applyRotationDelta(B, dq);
   }
   return Math.abs(C);
 }
 
-function siContactNormal(A, B, ct, dt, params, mode) {
+function applyContactNormalSI(A, B, ct, dt, params, mode) {
   const IAi = worldInertiaInv(A);
   const IBi = B ? worldInertiaInv(B) : mat3Zero();
   const rA = ct.rA, rB = ct.rB || [0,0,0];
@@ -114,16 +114,16 @@ function siContactNormal(A, B, ct, dt, params, mode) {
   ct.lambdaN = newL;
 
   const P = vMul(n, dLambda);
-  _applyImpulse(A, vMul(P, -1), rA, IAi);
-  if (B) _applyImpulse(B, P, rB, IBi);
+  applyVelocityImpulse(A, vMul(P, -1), rA, IAi);
+  if (B) applyVelocityImpulse(B, P, rB, IBi);
 }
 
-function siContactFriction(A, B, ct, params) {
+function applyContactFrictionSI(A, B, ct, params) {
   const IAi = worldInertiaInv(A);
   const IBi = B ? worldInertiaInv(B) : mat3Zero();
   const rA = ct.rA, rB = ct.rB || [0,0,0];
   const n = ct.n;
-  const t1 = _perpAxis(n);
+  const t1 = getPerpendicularAxis(n);
   const t2 = vCross(n, t1);
 
   const mu = params.mu;
@@ -150,12 +150,12 @@ function siContactFriction(A, B, ct, params) {
     ct[key] = cur;
 
     const P = vMul(t, dLambda);
-    _applyImpulse(A, vMul(P, -1), rA, IAi);
-    if (B) _applyImpulse(B, P, rB, IBi);
+    applyVelocityImpulse(A, vMul(P, -1), rA, IAi);
+    if (B) applyVelocityImpulse(B, P, rB, IBi);
   }
 }
 
-function siContactPosPass(A, B, ct) {
+function correctContactPosition(A, B, ct) {
   const pA = vAdd(A.x, quatRotate(A.q, ct.rAloc));
   const pB = B ? vAdd(B.x, quatRotate(B.q, ct.rBloc)) : ct.worldB;
   const sep = vDot(vSub(pA, pB), ct.n);
@@ -178,15 +178,15 @@ function siContactPosPass(A, B, ct) {
   const P = vMul(ct.n, dLambda);
   if (A.invM > 0) {
     A.x = vSub(A.x, vMul(P, A.invM));
-    _applyQuatDelta(A, mat3MulVec(IAi, vCross(rA, vMul(P, -1))));
+    applyRotationDelta(A, mat3MulVec(IAi, vCross(rA, vMul(P, -1))));
   }
   if (B && B.invM > 0) {
     B.x = vAdd(B.x, vMul(P, B.invM));
-    _applyQuatDelta(B, mat3MulVec(IBi, vCross(rB, P)));
+    applyRotationDelta(B, mat3MulVec(IBi, vCross(rB, P)));
   }
 }
 
-function _applyImpulse(b, P, r, Iinv) {
+function applyVelocityImpulse(b, P, r, Iinv) {
   if (b.invM === 0) return;
   b.v[0] += b.invM * P[0];
   b.v[1] += b.invM * P[1];
@@ -197,12 +197,12 @@ function _applyImpulse(b, P, r, Iinv) {
   b.w[2] += dw[2];
 }
 
-function _applyQuatDelta(b, dq_vec) {
+function applyRotationDelta(b, dq_vec) {
   const inc = quatMul([0, dq_vec[0]*0.5, dq_vec[1]*0.5, dq_vec[2]*0.5], b.q);
   b.q = quatNormalize([b.q[0]+inc[0], b.q[1]+inc[1], b.q[2]+inc[2], b.q[3]+inc[3]]);
 }
 
-function _perpAxis(n) {
+function getPerpendicularAxis(n) {
   const ax = Math.abs(n[0]), ay = Math.abs(n[1]), az = Math.abs(n[2]);
   let v;
   if (ax <= ay && ax <= az) v = [1, 0, 0];
@@ -212,7 +212,8 @@ function _perpAxis(n) {
   return t;
 }
 
-function xpbdDistanceConstraint(A, B, rAloc, rBloc, restLen, alpha, dt, state) {
+
+function applyDistanceConstraintXPBD(A, B, rAloc, rBloc, restLen, alpha, dt, state) {
   const alphaT = alpha / (dt * dt);
   const rA = quatRotate(A.q, rAloc);
   const rB = quatRotate(B.q, rBloc);
@@ -253,7 +254,7 @@ function xpbdDistanceConstraint(A, B, rAloc, rBloc, restLen, alpha, dt, state) {
   return Math.abs(C);
 }
 
-function xpbdApplyPositionCorrection(A, B, rA, rB, n, c, alphaT, state) {
+function correctDistancePositionXPBD(A, B, rA, rB, n, c, alphaT, state) {
   const IAi = A.invM > 0 ? worldInertiaInv(A) : mat3Zero();
   const IBi = B && B.invM > 0 ? worldInertiaInv(B) : mat3Zero();
   const rAxn = vCross(rA, n);
@@ -282,7 +283,7 @@ function xpbdApplyPositionCorrection(A, B, rA, rB, n, c, alphaT, state) {
   return dLambda;
 }
 
-function xpbdContactNormal(A, B, contact, dt, alpha) {
+function applyContactNormalXPBD(A, B, contact, dt, alpha) {
   const alphaT = alpha / (dt * dt);
   const rA = quatRotate(A.q, contact.rAloc);
   const rB = B ? quatRotate(B.q, contact.rBloc) : [0,0,0];
@@ -326,7 +327,7 @@ function xpbdContactNormal(A, B, contact, dt, alpha) {
   return C;
 }
 
-function xpbdContactFriction(A, B, ct, dt, muS, muD) {
+function applyContactFrictionXPBD(A, B, ct, dt, muS, muD) {
   if ((ct.lambdaN || 0) <= 0) return;
   if (!ct._prevPA) return;
 
@@ -335,7 +336,7 @@ function xpbdContactFriction(A, B, ct, dt, muS, muD) {
   const pA = vAdd(A.x, rA);
   const pB = B ? vAdd(B.x, rB) : ct.worldB;
   const n = ct.n;
-  const t1 = _xpbdPerpAxis(n);
+  const t1 = getPerpendicularAxisXPBD(n);
   const t2 = vCross(n, t1);
 
   const mu = muD;
@@ -381,7 +382,7 @@ function xpbdContactFriction(A, B, ct, dt, muS, muD) {
   }
 }
 
-function _xpbdPerpAxis(n) {
+function getPerpendicularAxisXPBD(n) {
   const ax = Math.abs(n[0]), ay = Math.abs(n[1]), az = Math.abs(n[2]);
   let v;
   if (ax <= ay && ax <= az) v = [1, 0, 0];

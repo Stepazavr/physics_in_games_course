@@ -133,7 +133,7 @@ function _stepPart2(dt) {
           if (!c._state) c._state = { lambda: 0 };
           c._state.lambda = c.lambda;
           const A = sim.bodies[c.a], B = sim.bodies[c.b];
-          const err = xpbdDistanceConstraint(A, B, c.rAloc, c.rBloc, c.restLen,
+          const err = applyDistanceConstraintXPBD(A, B, c.rAloc, c.rBloc, c.restLen,
                                              sim.compliance, subDt, c._state);
           c.lambda = c._state.lambda;
           sim.maxC = Math.max(sim.maxC, err);
@@ -166,7 +166,7 @@ function _stepPart2(dt) {
     for (let it = 0; it < sim.iterations; it++) {
       for (const c of sim.constraints) {
         const A = sim.bodies[c.a], B = sim.bodies[c.b];
-        siDistanceConstraint(A, B, c, postStab, params, dt);
+        applyDistanceConstraintSI(A, B, c, postStab, params, dt);
       }
     }
     for (const b of sim.bodies) _positionStep(b, dt);
@@ -174,7 +174,7 @@ function _stepPart2(dt) {
       for (let it = 0; it < sim.iterations; it++) {
         for (const c of sim.constraints) {
           const A = sim.bodies[c.a], B = sim.bodies[c.b];
-          siDistancePosPass(A, B, c);
+          correctDistancePosition(A, B, c);
         }
       }
     }
@@ -260,8 +260,8 @@ function _solveSI(contacts, dt) {
     for (const ct of contacts) {
       const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
       ct.iterCount = it;
-      siContactNormal(A, B, ct, dt, params, sim.postStab);
-      siContactFriction(A, B, ct, params);
+      applyContactNormalSI(A, B, ct, dt, params, sim.postStab);
+      applyContactFrictionSI(A, B, ct, params);
     }
   }
 
@@ -277,7 +277,7 @@ function _solveSI(contacts, dt) {
     for (let it = 0; it < Math.min(4, sim.iterations); it++) {
       for (const ct of contacts) {
         const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
-        siContactPosPass(A, B, ct);
+        correctContactPosition(A, B, ct);
       }
     }
   }
@@ -310,9 +310,9 @@ function _solveXPBD(contacts, dt) {
     for (let it = 0; it < 2; it++) {
       for (const ct of contacts) {
         const A = sim.bodies[ct.ai], B = sim.bodies[ct.bi];
-        xpbdContactNormal(A, B, ct, subDt, alpha);
-        if (sim.part === 4) xpbdContactFriction(A, B, ct, subDt, sim.muStatic, sim.muDynamic);
-        else                 xpbdContactFriction(A, B, ct, subDt, sim.muDynamic, sim.muDynamic);
+        applyContactNormalXPBD(A, B, ct, subDt, alpha);
+        if (sim.part === 4) applyContactFrictionXPBD(A, B, ct, subDt, sim.muStatic, sim.muDynamic);
+        else                 applyContactFrictionXPBD(A, B, ct, subDt, sim.muDynamic, sim.muDynamic);
       }
     }
 
