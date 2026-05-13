@@ -6,13 +6,13 @@ function findPotentialPairsBrute(bodies) {
     for (let j = i + 1; j < n; j++) {
       const b = bodies[j];
       if (a.isStatic && b.isStatic) continue;
-      if (doAABBIntersect(a, b)) pairs.push([i, j]);
+      if (testAABBIntersection(a, b)) pairs.push([i, j]);
     }
   }
   return pairs;
 }
 
-function doAABBIntersect(a, b) {
+function testAABBIntersection(a, b) {
   return (
     a.aabbMin[0] <= b.aabbMax[0] && a.aabbMax[0] >= b.aabbMin[0] &&
     a.aabbMin[1] <= b.aabbMax[1] && a.aabbMax[1] >= b.aabbMin[1] &&
@@ -68,7 +68,7 @@ function findPotentialPairsSpatialGrid(bodies, cellSize) {
         seen.add(k);
         const A = bodies[ia], B = bodies[ib];
         if (A.isStatic && B.isStatic) continue;
-        if (doAABBIntersect(A, B)) pairs.push([lo, hi]);
+        if (testAABBIntersection(A, B)) pairs.push([lo, hi]);
       }
   }
   return pairs;

@@ -1,11 +1,11 @@
-function makeSAP() {
+function createSAPStructure() {
   return {
     axes: [[], [], []],
     pairs: new Map(),
   };
 }
 
-function doAABBIntersect(a, b) {
+function testAABBIntersection(a, b) {
   return (
     a.aabbMin[0] <= b.aabbMax[0] && a.aabbMax[0] >= b.aabbMin[0] &&
     a.aabbMin[1] <= b.aabbMax[1] && a.aabbMax[1] >= b.aabbMin[1] &&
@@ -13,7 +13,7 @@ function doAABBIntersect(a, b) {
   );
 }
 
-function _sapInsertEvents(sap, bodies) {
+function initializeSAPEvents(sap, bodies) {
   for (let a = 0; a < 3; a++) {
     sap.axes[a].length = 0;
     for (let i = 0; i < bodies.length; i++) {
@@ -25,7 +25,7 @@ function _sapInsertEvents(sap, bodies) {
   }
 }
 
-function _sapInsertionSort(arr, bodies, axis) {
+function updateSAPEventsByInsertionSort(arr, bodies, axis) {
   for (const e of arr) {
     e.pos = e.isMax ? bodies[e.figure].aabbMax[axis] : bodies[e.figure].aabbMin[axis];
   }
@@ -40,11 +40,11 @@ function _sapInsertionSort(arr, bodies, axis) {
   }
 }
 
-function broadphaseSAP(bodies, sap) {
+function findPotentialPairsSAP(bodies, sap) {
   if (sap.axes[0].length !== bodies.length * 2) {
-    _sapInsertEvents(sap, bodies);
+    initializeSAPEvents(sap, bodies);
   } else {
-    for (let a = 0; a < 3; a++) _sapInsertionSort(sap.axes[a], bodies, a);
+    for (let a = 0; a < 3; a++) updateSAPEventsByInsertionSort(sap.axes[a], bodies, a);
   }
 
   const overlaps = [new Set(), new Set(), new Set()];
@@ -76,7 +76,8 @@ function broadphaseSAP(bodies, sap) {
 }
 
 
-function broadphaseLBVH(bodies) {
+
+function findPotentialPairsLBVH(bodies) {
   const n = bodies.length;
   if (n < 2) return [];
 
@@ -101,11 +102,11 @@ function broadphaseLBVH(bodies) {
     const xi = Math.max(0, Math.min(1023, Math.floor(cx * 1023)));
     const yi = Math.max(0, Math.min(1023, Math.floor(cy * 1023)));
     const zi = Math.max(0, Math.min(1023, Math.floor(cz * 1023)));
-    entries[i] = { code: _morton30(xi, yi, zi), bi: i };
+    entries[i] = { code: computeMortonCode30(xi, yi, zi), bi: i };
   }
   entries.sort((a, b) => a.code - b.code);
 
-  function buildNode(lo, hi) {
+  function buildLBVHNode(lo, hi) {
     if (lo === hi) {
       const figure = bodies[entries[lo].bi];
       return {
@@ -114,8 +115,8 @@ function broadphaseLBVH(bodies) {
       };
     }
     const mid = (lo + hi) >> 1;
-    const L = buildNode(lo, mid);
-    const R = buildNode(mid + 1, hi);
+    const L = buildLBVHNode(lo, mid);
+    const R = buildLBVHNode(mid + 1, hi);
     return {
       leaf: false, left: L, right: R,
       aabbMin: [
@@ -130,17 +131,17 @@ function broadphaseLBVH(bodies) {
       ],
     };
   }
-  const root = buildNode(0, n - 1);
+  const root = buildLBVHNode(0, n - 1);
 
   const pairs = [];
 
-  function nodesOverlap(A, B) {
+  function doAABBNodesIntersect(A, B) {
     return A.aabbMin[0] <= B.aabbMax[0] && A.aabbMax[0] >= B.aabbMin[0] &&
            A.aabbMin[1] <= B.aabbMax[1] && A.aabbMax[1] >= B.aabbMin[1] &&
            A.aabbMin[2] <= B.aabbMax[2] && A.aabbMax[2] >= B.aabbMin[2];
   }
 
-  function emitPair(i, j) {
+  function addUniquePair(i, j) {
     if (i === j) return;
     const a = bodies[i], b = bodies[j];
     if (a.isStatic && b.isStatic) return;
@@ -148,33 +149,33 @@ function broadphaseLBVH(bodies) {
     else        pairs.push([j, i]);
   }
 
-  function descend(A, B) {
-    if (!nodesOverlap(A, B)) return;
-    if (A.leaf && B.leaf) { emitPair(A.bi, B.bi); return; }
-    if (A.leaf)            { descend(A, B.left); descend(A, B.right); return; }
-    if (B.leaf)            { descend(A.left, B); descend(A.right, B); return; }
-    descend(A.left,  B.left);
-    descend(A.left,  B.right);
-    descend(A.right, B.left);
-    descend(A.right, B.right);
+  function traverseNodePair(A, B) {
+    if (!doAABBNodesIntersect(A, B)) return;
+    if (A.leaf && B.leaf) { addUniquePair(A.bi, B.bi); return; }
+    if (A.leaf)            { traverseNodePair(A, B.left); traverseNodePair(A, B.right); return; }
+    if (B.leaf)            { traverseNodePair(A.left, B); traverseNodePair(A.right, B); return; }
+    traverseNodePair(A.left,  B.left);
+    traverseNodePair(A.left,  B.right);
+    traverseNodePair(A.right, B.left);
+    traverseNodePair(A.right, B.right);
   }
 
-  function selfPairs(node) {
+  function collectInternalNodePairs(node) {
     if (node.leaf) return;
-    selfPairs(node.left);
-    selfPairs(node.right);
-    descend(node.left, node.right);
+    collectInternalNodePairs(node.left);
+    collectInternalNodePairs(node.right);
+    traverseNodePair(node.left, node.right);
   }
-  selfPairs(root);
+  collectInternalNodePairs(root);
 
   return pairs;
 }
 
-function _morton30(x, y, z) {
-  return _part1by2(x) | (_part1by2(y) << 1) | (_part1by2(z) << 2);
+function computeMortonCode30(x, y, z) {
+  return expandBitsForMorton(x) | (expandBitsForMorton(y) << 1) | (expandBitsForMorton(z) << 2);
 }
 
-function _part1by2(v) {
+function expandBitsForMorton(v) {
   v &= 0x3ff;
   v = (v | (v << 16)) & 0xff0000ff;
   v = (v | (v << 8))  & 0x0300f00f;

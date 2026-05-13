@@ -218,9 +218,9 @@ function updateCollisions(dt) {
 
   let pairs;
   if (simulation.broadphase === 'grid')      pairs = findPotentialPairsSpatialGrid(simulation.bodies, 1.5);
-  else if (simulation.broadphase === 'sap') { if (!sapState) sapState = makeSAP();
-                                        pairs = broadphaseSAP(simulation.bodies, sapState); }
-  else if (simulation.broadphase === 'lbvh') pairs = broadphaseLBVH(simulation.bodies);
+  else if (simulation.broadphase === 'sap') { if (!sapState) sapState = createSAPStructure();
+                                        pairs = findPotentialPairsSAP(simulation.bodies, sapState); }
+  else if (simulation.broadphase === 'lbvh') pairs = findPotentialPairsLBVH(simulation.bodies);
   else                                 pairs = findPotentialPairsBrute(simulation.bodies);
 
   simulation.broadphasePairs = pairs.length;
