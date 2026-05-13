@@ -6,10 +6,10 @@ const SCENES_BY_PART = {
 };
 
 function setupUserInterface() {
-  const partBtns = document.getElementById('part-btns');
-  if (partBtns) {
-    setupButtonGroup('part-btns', v => {
-      simulation.part = parseInt(v);
+  const partButtonsContainer = document.getElementById('part-btns');
+  if (partButtonsContainer) {
+    setupButtonGroup('part-btns', part => {
+      simulation.part = parseInt(part);
       updateSceneButtonsPanel();
       loadSceneWithDefaultSettings(SCENES_BY_PART[simulation.part][0]);
     });
@@ -17,77 +17,77 @@ function setupUserInterface() {
   
   updateSceneButtonsPanel();
 
-  const solverBtns = document.getElementById('solver-btns');
-  if (solverBtns) {
-    setupButtonGroup('solver-btns', v => { simulation.solver = v; updateUIVisibility(); });
+  const solverButtonsContainer = document.getElementById('solver-btns');
+  if (solverButtonsContainer) {
+    setupButtonGroup('solver-btns', solverMethod => { simulation.solver = solverMethod; updateUIVisibility(); });
   }
   
-  const postStabBtns = document.getElementById('poststab-btns');
-  if (postStabBtns) {
-    setupButtonGroup('poststab-btns', v => { simulation.postStab = v; updateUIVisibility(); });
+  const postStabButtonsContainer = document.getElementById('poststab-btns');
+  if (postStabButtonsContainer) {
+    setupButtonGroup('poststab-btns', postStabMethod => { simulation.postStab = postStabMethod; updateUIVisibility(); });
   }
   
-  const broadBtns = document.getElementById('broad-btns');
-  if (broadBtns) {
-    setupButtonGroup('broad-btns', v => { simulation.broadphase = v; });
+  const broadphaseButtonsContainer = document.getElementById('broad-btns');
+  if (broadphaseButtonsContainer) {
+    setupButtonGroup('broad-btns', broadphaseMethod => { simulation.broadphase = broadphaseMethod; });
   }
 
-  const iterSlider = document.getElementById('s-iter');
-  if (iterSlider) setupSliderControl('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
+  const iterationsSlider = document.getElementById('s-iter');
+  if (iterationsSlider) setupSliderControl('s-iter', 'v-iter', value => simulation.iterations = Math.round(value), value => String(Math.round(value)));
   
-  const compSlider = document.getElementById('s-comp');
-  if (compSlider) setupSliderControl('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
+  const complianceSlider = document.getElementById('s-comp');
+  if (complianceSlider) setupSliderControl('s-comp', 'v-comp', value => simulation.compliance = value, value => value.toFixed(4));
   
-  const betaSlider = document.getElementById('s-beta');
-  if (betaSlider) setupSliderControl('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
+  const baumgarteBetaSlider = document.getElementById('s-beta');
+  if (baumgarteBetaSlider) setupSliderControl('s-beta', 'v-beta', value => simulation.baumgarteBeta = value, value => value.toFixed(2));
   
-  const musSlider = document.getElementById('s-mus');
-  if (musSlider) setupSliderControl('s-mus',  'v-mus',  v => simulation.muStatic = v, v => v.toFixed(2));
+  const muStaticSlider = document.getElementById('s-mus');
+  if (muStaticSlider) setupSliderControl('s-mus',  'v-mus',  value => simulation.muStatic = value, value => value.toFixed(2));
   
-  const mudSlider = document.getElementById('s-mud');
-  if (mudSlider) setupSliderControl('s-mud',  'v-mud',  v => simulation.muDynamic = v, v => v.toFixed(2));
+  const muDynamicSlider = document.getElementById('s-mud');
+  if (muDynamicSlider) setupSliderControl('s-mud',  'v-mud',  value => simulation.muDynamic = value, value => value.toFixed(2));
   
-  const restSlider = document.getElementById('s-rest');
-  if (restSlider) setupSliderControl('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
+  const restitutionSlider = document.getElementById('s-rest');
+  if (restitutionSlider) setupSliderControl('s-rest', 'v-rest', value => simulation.restitution = value, value => value.toFixed(2));
   
-  const gravSlider = document.getElementById('s-grav');
-  if (gravSlider) setupSliderControl('s-grav', 'v-grav', v => simulation.gravity = v, v => v.toFixed(2));
+  const gravitySlider = document.getElementById('s-grav');
+  if (gravitySlider) setupSliderControl('s-grav', 'v-grav', value => simulation.gravity = value, value => value.toFixed(2));
   
-  const kSlider = document.getElementById('s-k');
-  if (kSlider) setupSliderControl('s-k',    'v-k',    v => updateSpringStiffness(v), v => v.toFixed(0));
+  const springStiffnessSlider = document.getElementById('s-k');
+  if (springStiffnessSlider) setupSliderControl('s-k',    'v-k',    value => updateSpringStiffness(value), value => value.toFixed(0));
   
-  const sdSlider = document.getElementById('s-sd');
-  if (sdSlider) setupSliderControl('s-sd',   'v-sd',   v => updateSpringDamping(v), v => v.toFixed(1));
+  const springDampingSlider = document.getElementById('s-sd');
+  if (springDampingSlider) setupSliderControl('s-sd',   'v-sd',   value => updateSpringDamping(value), value => value.toFixed(1));
 
   const pauseCheckbox = document.getElementById('s-pause');
   if (pauseCheckbox) {
-    pauseCheckbox.addEventListener('change', e => simulation.paused = e.target.checked);
+    pauseCheckbox.addEventListener('change', event => simulation.paused = event.target.checked);
   }
   
-  const resetBtn = document.getElementById('reset-btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => initializeScene(simulation.sceneId));
+  const resetButton = document.getElementById('reset-btn');
+  if (resetButton) {
+    resetButton.addEventListener('click', () => initializeScene(simulation.sceneId));
   }
 
   updateUIVisibility();
 }
 
 function updateSceneButtonsPanel() {
-  const cont = document.getElementById('scene-btns');
-  if (!cont) return;
-  cont.innerHTML = '';
-  const list = SCENES_BY_PART[simulation.part];
-  list.forEach((id, idx) => {
-    const b = document.createElement('button');
-    b.className = 'btn' + (idx === 0 ? ' active' : '');
-    b.dataset.val = id;
-    b.textContent = SCENE_CONFIGURATIONS[id].label;
-    b.addEventListener('click', () => {
-      cont.querySelectorAll('.btn').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      loadSceneWithDefaultSettings(id);
+  const sceneButtonsContainer = document.getElementById('scene-btns');
+  if (!sceneButtonsContainer) return;
+  sceneButtonsContainer.innerHTML = '';
+  const sceneIds = SCENES_BY_PART[simulation.part];
+  sceneIds.forEach((sceneId, index) => {
+    const buttonElement = document.createElement('button');
+    buttonElement.className = 'btn' + (index === 0 ? ' active' : '');
+    buttonElement.dataset.val = sceneId;
+    buttonElement.textContent = SCENE_CONFIGURATIONS[sceneId].label;
+    buttonElement.addEventListener('click', () => {
+      sceneButtonsContainer.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+      buttonElement.classList.add('active');
+      loadSceneWithDefaultSettings(sceneId);
     });
-    cont.appendChild(b);
+    sceneButtonsContainer.appendChild(buttonElement);
   });
 }
 
@@ -98,59 +98,59 @@ function loadSceneWithDefaultSettings(id) {
   updateUIVisibility();
 }
 
-function applySceneSpecificSettings(sc) {
-  if (sc === '4A' || sc === '3A' || sc === '3B') {
+function applySceneSpecificSettings(sceneId) {
+  if (sceneId === '4A' || sceneId === '3A' || sceneId === '3B') {
     setActiveSolverMethod('si');
   }
-  const def = { '3A': 'brute', '3B': 'grid', '4A': 'sap' };
-  if (def[sc]) setActiveBroadphaseMethod(def[sc]);
+  const broadphaseAssignments = { '3A': 'brute', '3B': 'grid', '4A': 'sap' };
+  if (broadphaseAssignments[sceneId]) setActiveBroadphaseMethod(broadphaseAssignments[sceneId]);
   
   // Adjust camera distance for large scenes
-  if (sc === '3B' || sc === '4A') {
+  if (sceneId === '3B' || sceneId === '4A') {
     simulation.cameraDistOverride = 28;
   } else {
     simulation.cameraDistOverride = null;
   }
   
-  if (sc === '2A' || sc === '2B') {
-    simulation.part2Kind = sc;
-  } else if (sc === '2C') {
+  if (sceneId === '2A' || sceneId === '2B') {
+    simulation.part2Kind = sceneId;
+  } else if (sceneId === '2C') {
     simulation.part2Kind = '2C';
     setActiveSolverMethod('xpbd');
-  } else if (sc === '2D') {
+  } else if (sceneId === '2D') {
     simulation.part2Kind = '2D';
     setActiveSolverMethod('si');
     simulation.part2SI_PostStab = simulation.part2SI_PostStab || 'baumgarte';
   }
 }
 
-function updateBroadphaseButtonsState(sc) {
-  const brBtns = document.querySelectorAll('#broad-btns .btn');
-  if (brBtns.length === 0) return;
-  brBtns.forEach(b => b.disabled = false);
-  if (sc === '3A' || sc === '3B') {
-    brBtns.forEach(b => {
-      const ok = b.dataset.val === 'brute' || b.dataset.val === 'grid';
-      b.disabled = !ok;
+function updateBroadphaseButtonsState(sceneId) {
+  const broadphaseButtons = document.querySelectorAll('#broad-btns .btn');
+  if (broadphaseButtons.length === 0) return;
+  broadphaseButtons.forEach(buttonElement => buttonElement.disabled = false);
+  if (sceneId === '3A' || sceneId === '3B') {
+    broadphaseButtons.forEach(buttonElement => {
+      const isValidBroadphaseForScene = buttonElement.dataset.val === 'brute' || buttonElement.dataset.val === 'grid';
+      buttonElement.disabled = !isValidBroadphaseForScene;
     });
   }
 }
 
 function updateUIVisibility() {
-  const p = simulation.part;
-  const sc = simulation.sceneId;
-  const sv = simulation.solver;
-  const ps = simulation.postStab;
-  const part2SI_PS = simulation.part2SI_PostStab || 'baumgarte';
-  const isContactPart = (p === 3 || p === 4);
-  const isPart2Spring = (sc === '2A' || sc === '2B');
-  const isPart2Dist   = (sc === '2C' || sc === '2D');
-  const isXPBDActive  = (sc === '2C') || (isContactPart && sv === 'xpbd');
-  const isSIActive    = (sc === '2D') || (isContactPart && sv === 'si');
-  const isSI_Baumgarte = sc === '2D' && part2SI_PS === 'baumgarte';
-  const isSI_NLGS     = sc === '2D' && part2SI_PS === 'nlgs';
-  const isSI_Soft     = sc === '2D' && part2SI_PS === 'soft';
-  const softPostStab  = (sc === '2D' && ps === 'soft');
+  const part = simulation.part;
+  const sceneId = simulation.sceneId;
+  const solver = simulation.solver;
+  const postStab = simulation.postStab;
+  const part2SI_PostStab = simulation.part2SI_PostStab || 'baumgarte';
+  const isContactPart = (part === 3 || part === 4);
+  const isPart2Spring = (sceneId === '2A' || sceneId === '2B');
+  const isPart2Dist   = (sceneId === '2C' || sceneId === '2D');
+  const isXPBDActive  = (sceneId === '2C') || (isContactPart && solver === 'xpbd');
+  const isSIActive    = (sceneId === '2D') || (isContactPart && solver === 'si');
+  const isSI_Baumgarte = sceneId === '2D' && part2SI_PostStab === 'baumgarte';
+  const isSI_NLGS     = sceneId === '2D' && part2SI_PostStab === 'nlgs';
+  const isSI_Soft     = sceneId === '2D' && part2SI_PostStab === 'soft';
+  const softPostStab  = (sceneId === '2D' && postStab === 'soft');
 
   toggleElementVisibility('sec-solver',   isContactPart);
   toggleElementVisibility('sec-poststab', isSIActive);
@@ -161,68 +161,68 @@ function updateUIVisibility() {
   
   toggleElementVisibility('row-iter', isPart2Spring || isPart2Dist || isContactPart);
   toggleElementVisibility('row-comp', isXPBDActive);
-  toggleElementVisibility('row-beta', isSI_Baumgarte || isSI_Soft || (isContactPart && sv === 'si'));
+  toggleElementVisibility('row-beta', isSI_Baumgarte || isSI_Soft || (isContactPart && solver === 'si'));
   toggleElementVisibility('row-rest', isSIActive || isContactPart);
   
-  toggleElementVisibility('row-mus',  p === 4 && isXPBDActive);
+  toggleElementVisibility('row-mus',  part === 4 && isXPBDActive);
   toggleElementVisibility('row-mud',  isContactPart);
   toggleElementVisibility('row-grav', isPart2Spring);
 }
 
-function toggleElementVisibility(id, visible) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = visible ? '' : 'none';
+function toggleElementVisibility(elementId, isVisible) {
+  const element = document.getElementById(elementId);
+  if (element) element.style.display = isVisible ? '' : 'none';
 }
 
-function setActiveBroadphaseMethod(val) {
-  simulation.broadphase = val;
-  const btns = document.querySelectorAll('#broad-btns .btn');
-  if (btns.length === 0) return;
-  btns.forEach(b => {
-    if (b.dataset.val === val) b.classList.add('active');
-    else b.classList.remove('active');
+function setActiveBroadphaseMethod(broadphaseMethod) {
+  simulation.broadphase = broadphaseMethod;
+  const broadphaseButtons = document.querySelectorAll('#broad-btns .btn');
+  if (broadphaseButtons.length === 0) return;
+  broadphaseButtons.forEach(buttonElement => {
+    if (buttonElement.dataset.val === broadphaseMethod) buttonElement.classList.add('active');
+    else buttonElement.classList.remove('active');
   });
 }
 
-function setActiveSolverMethod(val) {
-  simulation.solver = val;
-  const btns = document.querySelectorAll('#solver-btns .btn');
-  if (btns.length === 0) return;
-  btns.forEach(b => {
-    if (b.dataset.val === val) b.classList.add('active');
-    else b.classList.remove('active');
+function setActiveSolverMethod(solverMethod) {
+  simulation.solver = solverMethod;
+  const solverButtons = document.querySelectorAll('#solver-btns .btn');
+  if (solverButtons.length === 0) return;
+  solverButtons.forEach(buttonElement => {
+    if (buttonElement.dataset.val === solverMethod) buttonElement.classList.add('active');
+    else buttonElement.classList.remove('active');
   });
 }
 
-function updateSpringStiffness(v) {
-  simulation.springK = v;
-  for (const s of simulation.springs) s.k = v;
+function updateSpringStiffness(stiffnessValue) {
+  simulation.springK = stiffnessValue;
+  for (const spring of simulation.springs) spring.k = stiffnessValue;
 }
-function updateSpringDamping(v) {
-  simulation.springDamping = v;
-  for (const s of simulation.springs) s.c = v;
+function updateSpringDamping(dampingValue) {
+  simulation.springDamping = dampingValue;
+  for (const spring of simulation.springs) spring.c = dampingValue;
 }
 
 function updateStatisticsPanel() {
   if (simulation.part === 1) {
-    const b = simulation.bodies[0];
-    const L = computeAngularMomentum(b);
-    const E = computeKineticEnergy(b);
-    const L0 = simulation.L0 || [0,0,0];
-    const omega = b.w || [0,0,0];
-    const omegaLen = vectorLength(omega);
+    const body = simulation.bodies[0];
+    const angularMomentum = computeAngularMomentum(body);
+    const kineticEnergy = computeKineticEnergy(body);
+    const initialAngularMomentum = simulation.L0 || [0,0,0];
+    const angularVelocity = body.w || [0,0,0];
+    const angularVelocityMagnitude = vectorLength(angularVelocity);
     
-    setElementTextContent('m-L0x', L0[0].toFixed(3));
-    setElementTextContent('m-L0y', L0[1].toFixed(3));
-    setElementTextContent('m-L0z', L0[2].toFixed(3));
+    setElementTextContent('m-L0x', initialAngularMomentum[0].toFixed(3));
+    setElementTextContent('m-L0y', initialAngularMomentum[1].toFixed(3));
+    setElementTextContent('m-L0z', initialAngularMomentum[2].toFixed(3));
     
-    setElementTextContent('m-Lx', L[0].toFixed(3));
-    setElementTextContent('m-Ly', L[1].toFixed(3));
-    setElementTextContent('m-Lz', L[2].toFixed(3));
+    setElementTextContent('m-Lx', angularMomentum[0].toFixed(3));
+    setElementTextContent('m-Ly', angularMomentum[1].toFixed(3));
+    setElementTextContent('m-Lz', angularMomentum[2].toFixed(3));
     
-    setElementTextContent('m-E',  E.toFixed(3));
+    setElementTextContent('m-E',  kineticEnergy.toFixed(3));
     setElementTextContent('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
-    setElementTextContent('m-omega', omegaLen.toFixed(3));
+    setElementTextContent('m-omega', angularVelocityMagnitude.toFixed(3));
   } else if (simulation.part === 2) {
     setElementTextContent('m-k', simulation.springK ? simulation.springK.toFixed(0) : '200');
     setElementTextContent('m-sd', simulation.springDamping ? simulation.springDamping.toFixed(1) : '4.0');
@@ -233,31 +233,31 @@ function updateStatisticsPanel() {
   }
 }
 
-function setupButtonGroup(id, fn) {
-  const g = document.getElementById(id);
-  if (!g) return;
-  g.querySelectorAll('.btn').forEach(b => {
-    b.addEventListener('click', () => {
-      if (b.disabled) return;
-      g.querySelectorAll('.btn').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      fn(b.dataset.val);
+function setupButtonGroup(groupId, onButtonClick) {
+  const buttonGroup = document.getElementById(groupId);
+  if (!buttonGroup) return;
+  buttonGroup.querySelectorAll('.btn').forEach(button => {
+    button.addEventListener('click', () => {
+      if (button.disabled) return;
+      buttonGroup.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      onButtonClick(button.dataset.val);
     });
   });
 }
 
-function setupSliderControl(elId, lblId, setter, fmt) {
-  const el = document.getElementById(elId);
-  if (!el) return;
-  el.addEventListener('input', () => {
-    const v = parseFloat(el.value);
-    const lbl = document.getElementById(lblId);
-    if (lbl) lbl.textContent = fmt(v);
-    setter(v);
+function setupSliderControl(sliderId, labelId, onValueChange, formatter) {
+  const slider = document.getElementById(sliderId);
+  if (!slider) return;
+  slider.addEventListener('input', () => {
+    const value = parseFloat(slider.value);
+    const label = document.getElementById(labelId);
+    if (label) label.textContent = formatter(value);
+    onValueChange(value);
   });
 }
 
-function setElementTextContent(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
+function setElementTextContent(elementId, textContent) {
+  const element = document.getElementById(elementId);
+  if (element) element.textContent = textContent;
 }

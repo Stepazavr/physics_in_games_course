@@ -4,11 +4,11 @@ let pausedState = false;
 
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize pause/reset buttons (no broadphase refresh for task 4)
-  const pauseBtn = document.getElementById('pause-btn');
-  const resetBtn = document.getElementById('reset-btn');
+  const pauseButton = document.getElementById('pause-btn');
+  const resetButton = document.getElementById('reset-btn');
 
-  if (pauseBtn) {
-    pauseBtn.addEventListener('click', function() {
+  if (pauseButton) {
+    pauseButton.addEventListener('click', function() {
       pausedState = !pausedState;
       simulation.paused = pausedState;
       this.classList.toggle('active', pausedState);
@@ -16,39 +16,39 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  if (resetBtn) {
-    resetBtn.addEventListener('click', function() {
+  if (resetButton) {
+    resetButton.addEventListener('click', function() {
       initializeScene(simulation.sceneId);
       simulation.paused = pausedState;
-      if (pauseBtn) {
+      if (pauseButton) {
         if (pausedState) {
-          pauseBtn.classList.add('active');
-          pauseBtn.textContent = '▶ Resume';
+          pauseButton.classList.add('active');
+          pauseButton.textContent = '▶ Resume';
         } else {
-          pauseBtn.classList.remove('active');
-          pauseBtn.textContent = '⏸ Pause';
+          pauseButton.classList.remove('active');
+          pauseButton.textContent = '⏸ Pause';
         }
       }
     });
   }
 
   // Setup sliders for task_4
-  bindSliderToParameter('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
-  bindSliderToParameter('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
-  bindSliderToParameter('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
-  bindSliderToParameter('s-mus', 'v-mus', v => simulation.muStatic = v, v => v.toFixed(2));
-  bindSliderToParameter('s-mud', 'v-mud', v => simulation.muDynamic = v, v => v.toFixed(2));
-  bindSliderToParameter('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
-  bindSliderToParameter('s-grav', 'v-grav', v => simulation.gravity = v, v => v.toFixed(2));
+  bindSliderToParameter('s-iter', 'v-iter', value => simulation.iterations = Math.round(value), value => String(Math.round(value)));
+  bindSliderToParameter('s-comp', 'v-comp', value => simulation.compliance = value, value => value.toFixed(4));
+  bindSliderToParameter('s-beta', 'v-beta', value => simulation.baumgarteBeta = value, value => value.toFixed(2));
+  bindSliderToParameter('s-mus', 'v-mus', value => simulation.muStatic = value, value => value.toFixed(2));
+  bindSliderToParameter('s-mud', 'v-mud', value => simulation.muDynamic = value, value => value.toFixed(2));
+  bindSliderToParameter('s-rest', 'v-rest', value => simulation.restitution = value, value => value.toFixed(2));
+  bindSliderToParameter('s-grav', 'v-grav', value => simulation.gravity = value, value => value.toFixed(2));
   
   // Initial scene load
   if (simulation && simulation.sceneId) {
     initializeScene(simulation.sceneId);
     simulation.paused = false;
     pausedState = false;
-    if (pauseBtn) {
-      pauseBtn.textContent = '⏸ Pause';
-      pauseBtn.classList.remove('active');
+    if (pauseButton) {
+      pauseButton.textContent = '⏸ Pause';
+      pauseButton.classList.remove('active');
     }
   }
 });
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Task 4 updateMetrics - show only dynamic bodies count
 function updateStatisticsPanel() {
   if (simulation.part === 4) {
-    const dynamicBodies = simulation.bodies.filter(b => !b.isStatic).length;
-    setElementTextContent('m-bodies', String(dynamicBodies));
+    const dynamicBodiesCount = simulation.bodies.filter(body => !body.isStatic).length;
+    setElementTextContent('m-bodies', String(dynamicBodiesCount));
   }
 }

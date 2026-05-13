@@ -7,95 +7,95 @@ document.addEventListener('DOMContentLoaded', function() {
   pausedState = setupUIControls();
   
   // Initialize scene selection UI for task_2 (tree structure)
-  const pauseBtn = document.getElementById('pause-btn');
-  const sceneButtons = document.querySelectorAll('.scene-btn');
-  const springBranch = document.getElementById('spring-branch');
-  const constraintBranch = document.getElementById('constraint-branch');
-  const siBranch = document.getElementById('si-branch');
+  const pauseButton = document.getElementById('pause-btn');
+  const sceneButtonElements = document.querySelectorAll('.scene-btn');
+  const springSection = document.getElementById('spring-branch');
+  const constraintSection = document.getElementById('constraint-branch');
+  const siSection = document.getElementById('si-branch');
   
-  sceneButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
+  sceneButtonElements.forEach(button => {
+    button.addEventListener('click', function() {
       if (this.disabled) return;
       
-      const val = this.dataset.val;
+      const sceneValue = this.dataset.val;
       
-      sceneButtons.forEach(b => b.classList.remove('active'));
+      sceneButtonElements.forEach(btn => btn.classList.remove('active'));
       this.classList.add('active');
       
-      if (val === '2A_parent') {
-        springBranch.style.display = 'block';
-        constraintBranch.style.display = 'none';
-        siBranch.style.display = 'none';
+      if (sceneValue === '2A_parent') {
+        springSection.style.display = 'block';
+        constraintSection.style.display = 'none';
+        siSection.style.display = 'none';
         document.querySelector('[data-val="2A"]').classList.add('active');
         pausedState = false;
         simulation.paused = false;
-        pauseBtn.classList.remove('active');
-        pauseBtn.textContent = '⏸ Pause';
+        pauseButton.classList.remove('active');
+        pauseButton.textContent = '⏸ Pause';
         loadSceneWithDefaultSettings('2A');
         initializeScene('2A');
-      } else if (val === '2A' || val === '2B') {
-        springBranch.style.display = 'block';
-        constraintBranch.style.display = 'none';
-        siBranch.style.display = 'none';
+      } else if (sceneValue === '2A' || sceneValue === '2B') {
+        springSection.style.display = 'block';
+        constraintSection.style.display = 'none';
+        siSection.style.display = 'none';
         document.querySelector('[data-val="2A_parent"]').classList.add('active');
         this.classList.add('active');
         pausedState = false;
         simulation.paused = false;
-        pauseBtn.classList.remove('active');
-        pauseBtn.textContent = '⏸ Pause';
-        loadSceneWithDefaultSettings(val);
-        initializeScene(val);
-        initializeScene(val);
-      } else if (val === '2C_parent') {
-        springBranch.style.display = 'none';
-        constraintBranch.style.display = 'block';
-        siBranch.style.display = 'none';
+        pauseButton.classList.remove('active');
+        pauseButton.textContent = '⏸ Pause';
+        loadSceneWithDefaultSettings(sceneValue);
+        initializeScene(sceneValue);
+        initializeScene(sceneValue);
+      } else if (sceneValue === '2C_parent') {
+        springSection.style.display = 'none';
+        constraintSection.style.display = 'block';
+        siSection.style.display = 'none';
         document.querySelector('[data-val="2C"]').classList.add('active');
         pausedState = false;
         simulation.paused = false;
-        pauseBtn.classList.remove('active');
-        pauseBtn.textContent = '⏸ Pause';
+        pauseButton.classList.remove('active');
+        pauseButton.textContent = '⏸ Pause';
         loadSceneWithDefaultSettings('2C');
         initializeScene('2C');
-      } else if (val === '2C') {
-        springBranch.style.display = 'none';
-        constraintBranch.style.display = 'block';
-        siBranch.style.display = 'none';
+      } else if (sceneValue === '2C') {
+        springSection.style.display = 'none';
+        constraintSection.style.display = 'block';
+        siSection.style.display = 'none';
         document.querySelector('[data-val="2C_parent"]').classList.add('active');
         this.classList.add('active');
         pausedState = false;
         simulation.paused = false;
-        pauseBtn.classList.remove('active');
-        pauseBtn.textContent = '⏸ Pause';
+        pauseButton.classList.remove('active');
+        pauseButton.textContent = '⏸ Pause';
         loadSceneWithDefaultSettings('2C');
         initializeScene('2C');
-      } else if (val === '2D_parent') {
-        springBranch.style.display = 'none';
-        constraintBranch.style.display = 'block';
-        siBranch.style.display = 'block';
+      } else if (sceneValue === '2D_parent') {
+        springSection.style.display = 'none';
+        constraintSection.style.display = 'block';
+        siSection.style.display = 'block';
         document.querySelector('[data-val="2C_parent"]').classList.add('active');
         this.classList.add('active');
         document.querySelector('[data-val="2D_baumgarte"]').classList.add('active');
         pausedState = false;
         simulation.paused = false;
-        pauseBtn.classList.remove('active');
-        pauseBtn.textContent = '⏸ Pause';
+        pauseButton.classList.remove('active');
+        pauseButton.textContent = '⏸ Pause';
         loadSceneWithDefaultSettings('2D');
         initializeScene('2D');
-      } else if (val === '2D_baumgarte' || val === '2D_nlgs' || val === '2D_soft') {
-        springBranch.style.display = 'none';
-        constraintBranch.style.display = 'block';
-        siBranch.style.display = 'block';
+      } else if (sceneValue === '2D_baumgarte' || sceneValue === '2D_nlgs' || sceneValue === '2D_soft') {
+        springSection.style.display = 'none';
+        constraintSection.style.display = 'block';
+        siSection.style.display = 'block';
         document.querySelector('[data-val="2C_parent"]').classList.add('active');
         document.querySelector('[data-val="2D_parent"]').classList.add('active');
         this.classList.add('active');
         
-        const modeMap = { '2D_baumgarte': 'baumgarte', '2D_nlgs': 'nlgs', '2D_soft': 'soft' };
-        simulation.part2SI_PostStab = modeMap[val];
+        const postStabModeMap = { '2D_baumgarte': 'baumgarte', '2D_nlgs': 'nlgs', '2D_soft': 'soft' };
+        simulation.part2SI_PostStab = postStabModeMap[sceneValue];
         pausedState = false;
         simulation.paused = false;
-        pauseBtn.classList.remove('active');
-        pauseBtn.textContent = '⏸ Pause';
+        pauseButton.classList.remove('active');
+        pauseButton.textContent = '⏸ Pause';
         loadSceneWithDefaultSettings('2D');
         initializeScene('2D');
       }
@@ -103,12 +103,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // Setup sliders for task_2
-  bindSliderToParameter('s-k', 'v-k', v => { simulation.springK = v; updateSpringStiffness(v); }, v => v.toFixed(0));
-  bindSliderToParameter('s-sd', 'v-sd', v => { simulation.springDamping = v; updateSpringDamping(v); }, v => v.toFixed(1));
-  bindSliderToParameter('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
-  bindSliderToParameter('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
-  bindSliderToParameter('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
-  bindSliderToParameter('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
+  bindSliderToParameter('s-k', 'v-k', value => { simulation.springK = value; updateSpringStiffness(value); }, value => value.toFixed(0));
+  bindSliderToParameter('s-sd', 'v-sd', value => { simulation.springDamping = value; updateSpringDamping(value); }, value => value.toFixed(1));
+  bindSliderToParameter('s-iter', 'v-iter', value => simulation.iterations = Math.round(value), value => String(Math.round(value)));
+  bindSliderToParameter('s-comp', 'v-comp', value => simulation.compliance = value, value => value.toFixed(4));
+  bindSliderToParameter('s-beta', 'v-beta', value => simulation.baumgarteBeta = value, value => value.toFixed(2));
+  bindSliderToParameter('s-rest', 'v-rest', value => simulation.restitution = value, value => value.toFixed(2));
   
   // Initial scene load
   loadSceneWithDefaultSettings('2A');

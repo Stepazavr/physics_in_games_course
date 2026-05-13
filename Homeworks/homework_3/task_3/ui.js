@@ -7,37 +7,37 @@ document.addEventListener('DOMContentLoaded', function() {
   pausedState = setupUIControls();
   
   // Initialize scene selection UI for task_3
-  const sceneButtons = document.querySelectorAll('.scene-btn');
+  const sceneButtonElements = document.querySelectorAll('.scene-btn');
   
-  sceneButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
+  sceneButtonElements.forEach(button => {
+    button.addEventListener('click', function() {
       if (this.disabled) return;
       
-      const val = this.dataset.val;
+      const sceneValue = this.dataset.val;
       
-      sceneButtons.forEach(b => b.classList.remove('active'));
+      sceneButtonElements.forEach(btn => btn.classList.remove('active'));
       this.classList.add('active');
       
-      loadSceneWithDefaultSettings(val);
+      loadSceneWithDefaultSettings(sceneValue);
     });
   });
   
   // Setup sliders for task_3
-  bindSliderToParameter('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
-  bindSliderToParameter('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
-  bindSliderToParameter('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
-  bindSliderToParameter('s-mud', 'v-mud', v => simulation.muDynamic = v, v => v.toFixed(2));
-  bindSliderToParameter('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
+  bindSliderToParameter('s-iter', 'v-iter', value => simulation.iterations = Math.round(value), value => String(Math.round(value)));
+  bindSliderToParameter('s-comp', 'v-comp', value => simulation.compliance = value, value => value.toFixed(4));
+  bindSliderToParameter('s-beta', 'v-beta', value => simulation.baumgarteBeta = value, value => value.toFixed(2));
+  bindSliderToParameter('s-mud', 'v-mud', value => simulation.muDynamic = value, value => value.toFixed(2));
+  bindSliderToParameter('s-rest', 'v-rest', value => simulation.restitution = value, value => value.toFixed(2));
   
   // Initial scene load
   if (simulation && simulation.sceneId) {
     initializeScene(simulation.sceneId);
     simulation.paused = false;
     pausedState = false;
-    const pauseBtn = document.getElementById('pause-btn');
-    if (pauseBtn) {
-      pauseBtn.textContent = '⏸ Pause';
-      pauseBtn.classList.remove('active');
+    const pauseButton = document.getElementById('pause-btn');
+    if (pauseButton) {
+      pauseButton.textContent = '⏸ Pause';
+      pauseButton.classList.remove('active');
     }
   }
 });
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Task 3 updateMetrics - show only dynamic bodies count
 function updateStatisticsPanel() {
   if (simulation.part === 3) {
-    const dynamicBodies = simulation.bodies.filter(b => !b.isStatic).length;
-    setElementTextContent('m-bodies', String(dynamicBodies));
+    const dynamicBodiesCount = simulation.bodies.filter(body => !body.isStatic).length;
+    setElementTextContent('m-bodies', String(dynamicBodiesCount));
   }
 }
