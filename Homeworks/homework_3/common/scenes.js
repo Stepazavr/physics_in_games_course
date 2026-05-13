@@ -13,8 +13,6 @@ const SCENES = {
   '3B': { part: 3, label: '3B · 1000 boxes',   kind: 'pile' },
 
   '4A': { part: 4, label: '4A · varied sizes', kind: 'varied' },
-  '4B': { part: 4, label: '4B · varied (LBVH)', kind: 'varied' },
-  '4C': { part: 4, label: '4C · friction ramp', kind: 'ramp' },
 };
 
 function loadScene(id) {
@@ -46,8 +44,7 @@ function loadScene(id) {
     else _scenePile();
   } else if (def.part === 4) {
     sim.part4Kind = def.kind;
-    if (def.kind === 'ramp') _sceneRamp();
-    else _sceneVaried();
+    _sceneVaried();
   }
 
   if (def.part === 1) {
@@ -180,26 +177,6 @@ function _sceneVaried() {
     });
     b.q = quatFromAxisAngle(vNorm([Math.random()-0.5, Math.random()-0.5, Math.random()-0.5]),
                             Math.random() * Math.PI);
-    sim.bodies.push(b);
-  }
-}
-
-function _sceneRamp() {
-  const angle = (sim.rampAngle != null ? sim.rampAngle : 25) * Math.PI / 180;
-  const ramp = makeBody({
-    x: [0, 0, 0], halfExtents: [5, 0.3, 4], static: true,
-  });
-  ramp.q = quatFromAxisAngle([0, 0, 1], -angle);
-  sim.bodies.push(ramp);
-
-  for (let i = 0; i < 4; i++) {
-    const h = 0.3;
-    const b = makeBody({
-      x: [-3 + i*1.6, 2.0 + Math.sin(-angle) * (-3 + i*1.6) + h*4, (i-1.5)*0.1],
-      halfExtents: [h, h, h],
-      m: 1, color: [220, 130, 80 + i*30],
-    });
-    b.q = quatFromAxisAngle([0, 0, 1], -angle);
     sim.bodies.push(b);
   }
 }

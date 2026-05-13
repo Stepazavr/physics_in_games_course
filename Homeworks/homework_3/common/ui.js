@@ -2,7 +2,7 @@ const PART_SCENES = {
   1: ['1A', '1B', '1C', '1D'],
   2: ['2A', '2B', '2C', '2D'],
   3: ['3A', '3B'],
-  4: ['4A', '4B', '4C'],
+  4: ['4A'],
 };
 
 function initUI() {
@@ -100,11 +100,10 @@ function _loadSceneWithDefaults(id) {
 }
 
 function _applySceneDefaults(sc) {
-  if (sc === '4C')      _setSolverButton('xpbd');
-  else if (sc === '4A' || sc === '4B' || sc === '3A' || sc === '3B') {
+  if (sc === '4A' || sc === '3A' || sc === '3B') {
     _setSolverButton('si');
   }
-  const def = { '3A': 'brute', '3B': 'grid', '4A': 'sap', '4B': 'lbvh', '4C': 'brute' };
+  const def = { '3A': 'brute', '3B': 'grid', '4A': 'sap' };
   if (def[sc]) _setBroadButton(def[sc]);
 }
 
@@ -112,9 +111,7 @@ function _refreshBroadphaseEnabled(sc) {
   const brBtns = document.querySelectorAll('#broad-btns .btn');
   if (brBtns.length === 0) return;
   brBtns.forEach(b => b.disabled = false);
-  if (sc === '4B') {
-    brBtns.forEach(b => b.disabled = b.dataset.val !== 'lbvh');
-  } else if (sc === '3A' || sc === '3B') {
+  if (sc === '3A' || sc === '3B') {
     brBtns.forEach(b => {
       const ok = b.dataset.val === 'brute' || b.dataset.val === 'grid';
       b.disabled = !ok;
