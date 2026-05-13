@@ -1,4 +1,4 @@
-const SCENES = {
+const SCENE_CONFIGURATIONS = {
   '1A': { part: 1, label: 'в глобальных координатах', mode: '1A' },
   '1B': { part: 1, label: 'без гироскопического слагаемого', mode: '1B' },
   '1C': { part: 1, label: 'с гироскопическим слагаемым в явном выражении', mode: '1C' },
@@ -29,8 +29,8 @@ const BRIGHT_COLORS = [
   [255, 150, 100],  // Bright coral
 ];
 
-function loadScene(id) {
-  const def = SCENES[id];
+function initializeScene(id) {
+  const def = SCENE_CONFIGURATIONS[id];
   if (!def) return;
 
   simulation.sceneId   = id;
@@ -71,7 +71,7 @@ function loadScene(id) {
 
 // ============== Common UI Functions (shared across all tasks) ==============
 
-function setupSlider(slId, lblId, setter, fmt) {
+function bindSliderToParameter(slId, lblId, setter, fmt) {
   const sl = document.getElementById(slId);
   if (!sl) return;
   sl.addEventListener('input', () => {
@@ -82,12 +82,12 @@ function setupSlider(slId, lblId, setter, fmt) {
   });
 }
 
-function _set(id, val) {
+function updateUIElement(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }
 
-function initCommonUIElements() {
+function setupUIControls() {
   let pausedState = false;
   const pauseBtn = document.getElementById('pause-btn');
   const resetBtn = document.getElementById('reset-btn');
@@ -103,9 +103,9 @@ function initCommonUIElements() {
 
   if (resetBtn) {
     resetBtn.addEventListener('click', function() {
-      loadScene(simulation.sceneId);
+      initializeScene(simulation.sceneId);
       if (typeof _refreshBroadphaseEnabled === 'function') {
-        _refreshBroadphaseEnabled(SCENES[simulation.sceneId]);
+        _refreshBroadphaseEnabled(SCENE_CONFIGURATIONS[simulation.sceneId]);
       }
       simulation.paused = pausedState;
       if (pauseBtn) {
@@ -123,7 +123,7 @@ function initCommonUIElements() {
   return pausedState;
 }
 
-// Default empty updateMetrics - override in task-specific scene.js
-function updateMetrics() {
+// Default empty refreshStatisticsDisplay - override in task-specific scene.js
+function refreshStatisticsDisplay() {
   // Override in task-specific files
 }

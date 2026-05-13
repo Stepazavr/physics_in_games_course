@@ -4,7 +4,7 @@ let pausedState = false;
 
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize pause/reset buttons
-  pausedState = initCommonUIElements();
+  pausedState = setupUIControls();
   
   // Initialize scene selection UI for task_1 (tree structure)
   const sceneButtons = document.querySelectorAll('.scene-btn');
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initial scene load
   if (simulation && simulation.sceneId) {
-    loadScene(simulation.sceneId);
+    initializeScene(simulation.sceneId);
     simulation.paused = false;
     pausedState = false;
     const pauseBtn = document.getElementById('pause-btn');
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Task 1 specific updateMetrics for vector display
-function updateMetrics() {
+function refreshStatisticsDisplay() {
   if (simulation.bodies.length > 0 && simulation.part === 1) {
     const b = simulation.bodies[0];
     const L = computeAngularMomentum(b);
@@ -75,17 +75,17 @@ function updateMetrics() {
     const omegaLen = vectorLength(omega);
     
     // Vector display in bracket notation
-    _set('m-L0-vec', `(${L0[0].toFixed(3)}, ${L0[1].toFixed(3)}, ${L0[2].toFixed(3)})`);
-    _set('m-L-vec', `(${L[0].toFixed(3)}, ${L[1].toFixed(3)}, ${L[2].toFixed(3)})`);
+    updateUIElement('m-L0-vec', `(${L0[0].toFixed(3)}, ${L0[1].toFixed(3)}, ${L0[2].toFixed(3)})`);
+    updateUIElement('m-L-vec', `(${L[0].toFixed(3)}, ${L[1].toFixed(3)}, ${L[2].toFixed(3)})`);
     
-    _set('m-E',  E.toFixed(3));
-    _set('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
-    _set('m-omega', omegaLen.toFixed(3));
+    updateUIElement('m-E',  E.toFixed(3));
+    updateUIElement('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
+    updateUIElement('m-omega', omegaLen.toFixed(3));
   } else {
-    _set('m-L0-vec', '—');
-    _set('m-L-vec', '—');
-    _set('m-E', '—');
-    _set('m-E0', '—');
-    _set('m-omega', '—');
+    updateUIElement('m-L0-vec', '—');
+    updateUIElement('m-L-vec', '—');
+    updateUIElement('m-E', '—');
+    updateUIElement('m-E0', '—');
+    updateUIElement('m-omega', '—');
   }
 }

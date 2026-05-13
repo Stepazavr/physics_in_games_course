@@ -66,7 +66,7 @@ function initUI() {
   
   const resetBtn = document.getElementById('reset-btn');
   if (resetBtn) {
-    resetBtn.addEventListener('click', () => loadScene(simulation.sceneId));
+    resetBtn.addEventListener('click', () => initializeScene(simulation.sceneId));
   }
 
   _refreshVisibility();
@@ -81,7 +81,7 @@ function _rebuildSceneButtons() {
     const b = document.createElement('button');
     b.className = 'btn' + (idx === 0 ? ' active' : '');
     b.dataset.val = id;
-    b.textContent = SCENES[id].label;
+    b.textContent = SCENE_CONFIGURATIONS[id].label;
     b.addEventListener('click', () => {
       cont.querySelectorAll('.btn').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
@@ -92,7 +92,7 @@ function _rebuildSceneButtons() {
 }
 
 function _loadSceneWithDefaults(id) {
-  loadScene(id);
+  initializeScene(id);
   _applySceneDefaults(id);
   _refreshBroadphaseEnabled(id);
   _refreshVisibility();
@@ -203,7 +203,7 @@ function _setSpringDamping(v) {
   for (const s of simulation.springs) s.c = v;
 }
 
-function updateMetrics() {
+function refreshStatisticsDisplay() {
   if (simulation.part === 1) {
     const b = simulation.bodies[0];
     const L = computeAngularMomentum(b);
@@ -212,24 +212,24 @@ function updateMetrics() {
     const omega = b.w || [0,0,0];
     const omegaLen = vectorLength(omega);
     
-    _set('m-L0x', L0[0].toFixed(3));
-    _set('m-L0y', L0[1].toFixed(3));
-    _set('m-L0z', L0[2].toFixed(3));
+    updateUIElement('m-L0x', L0[0].toFixed(3));
+    updateUIElement('m-L0y', L0[1].toFixed(3));
+    updateUIElement('m-L0z', L0[2].toFixed(3));
     
-    _set('m-Lx', L[0].toFixed(3));
-    _set('m-Ly', L[1].toFixed(3));
-    _set('m-Lz', L[2].toFixed(3));
+    updateUIElement('m-Lx', L[0].toFixed(3));
+    updateUIElement('m-Ly', L[1].toFixed(3));
+    updateUIElement('m-Lz', L[2].toFixed(3));
     
-    _set('m-E',  E.toFixed(3));
-    _set('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
-    _set('m-omega', omegaLen.toFixed(3));
+    updateUIElement('m-E',  E.toFixed(3));
+    updateUIElement('m-E0', simulation.E0 > 1e-9 ? simulation.E0.toFixed(3) : '—');
+    updateUIElement('m-omega', omegaLen.toFixed(3));
   } else if (simulation.part === 2) {
-    _set('m-k', simulation.springK ? simulation.springK.toFixed(0) : '200');
-    _set('m-sd', simulation.springDamping ? simulation.springDamping.toFixed(1) : '4.0');
+    updateUIElement('m-k', simulation.springK ? simulation.springK.toFixed(0) : '200');
+    updateUIElement('m-sd', simulation.springDamping ? simulation.springDamping.toFixed(1) : '4.0');
     
-    if (simulation.iterations) _set('m-iter', String(simulation.iterations));
-    if (simulation.compliance !== undefined) _set('m-comp', simulation.compliance.toFixed(4));
-    if (simulation.baumgarteBeta !== undefined) _set('m-beta', simulation.baumgarteBeta.toFixed(2));
+    if (simulation.iterations) updateUIElement('m-iter', String(simulation.iterations));
+    if (simulation.compliance !== undefined) updateUIElement('m-comp', simulation.compliance.toFixed(4));
+    if (simulation.baumgarteBeta !== undefined) updateUIElement('m-beta', simulation.baumgarteBeta.toFixed(2));
   }
 }
 
@@ -257,7 +257,7 @@ function _slider(elId, lblId, setter, fmt) {
   });
 }
 
-function _set(id, val) {
+function updateUIElement(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }

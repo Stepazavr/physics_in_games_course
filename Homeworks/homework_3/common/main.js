@@ -43,7 +43,7 @@ function setup() {
   };
 
   initUI();
-  loadScene(initialScene);
+  initializeScene(initialScene);
   _applySceneDefaults(initialScene);
   _refreshBroadphaseEnabled(initialScene);
   _refreshVisibility();
@@ -68,7 +68,7 @@ function draw() {
   if (!simulation.paused) updateSimulation();
 
   drawScene();
-  updateMetrics();
+  refreshStatisticsDisplay();
 }
 
 function updateSimulation() {
@@ -508,7 +508,7 @@ function mouseWheel(e) {
 }
 
 function keyPressed() {
-  if (key === 'r' || key === 'R') loadScene(simulation.sceneId);
+  if (key === 'r' || key === 'R') initializeScene(simulation.sceneId);
 }
 
 function windowResized() {

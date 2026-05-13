@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (resetBtn) {
     resetBtn.addEventListener('click', function() {
-      loadScene(simulation.sceneId);
+      initializeScene(simulation.sceneId);
       simulation.paused = pausedState;
       if (pauseBtn) {
         if (pausedState) {
@@ -33,17 +33,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Setup sliders for task_4
-  setupSlider('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
-  setupSlider('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
-  setupSlider('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
-  setupSlider('s-mus', 'v-mus', v => simulation.muStatic = v, v => v.toFixed(2));
-  setupSlider('s-mud', 'v-mud', v => simulation.muDynamic = v, v => v.toFixed(2));
-  setupSlider('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
-  setupSlider('s-grav', 'v-grav', v => simulation.gravity = v, v => v.toFixed(2));
+  bindSliderToParameter('s-iter', 'v-iter', v => simulation.iterations = Math.round(v), v => String(Math.round(v)));
+  bindSliderToParameter('s-comp', 'v-comp', v => simulation.compliance = v, v => v.toFixed(4));
+  bindSliderToParameter('s-beta', 'v-beta', v => simulation.baumgarteBeta = v, v => v.toFixed(2));
+  bindSliderToParameter('s-mus', 'v-mus', v => simulation.muStatic = v, v => v.toFixed(2));
+  bindSliderToParameter('s-mud', 'v-mud', v => simulation.muDynamic = v, v => v.toFixed(2));
+  bindSliderToParameter('s-rest', 'v-rest', v => simulation.restitution = v, v => v.toFixed(2));
+  bindSliderToParameter('s-grav', 'v-grav', v => simulation.gravity = v, v => v.toFixed(2));
   
   // Initial scene load
   if (simulation && simulation.sceneId) {
-    loadScene(simulation.sceneId);
+    initializeScene(simulation.sceneId);
     simulation.paused = false;
     pausedState = false;
     if (pauseBtn) {
@@ -54,9 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Task 4 updateMetrics - show only dynamic bodies count
-function updateMetrics() {
+function refreshStatisticsDisplay() {
   if (simulation.part === 4) {
     const dynamicBodies = simulation.bodies.filter(b => !b.isStatic).length;
-    _set('m-bodies', String(dynamicBodies));
+    updateUIElement('m-bodies', String(dynamicBodies));
   }
 }
